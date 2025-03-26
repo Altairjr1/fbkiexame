@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StudentCard, Student } from "./StudentCard";
 import BeltDisplay from "./BeltDisplay";
+import { Label } from "@/components/ui/label"; // Adding the missing import
 import { PlusCircle, MinusCircle, ArrowRight, User, Award, BookOpen, Swords, FileText, CalendarIcon, MapPinIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
