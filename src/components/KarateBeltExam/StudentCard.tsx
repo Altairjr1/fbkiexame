@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ArrowRight } from "lucide-react";
 
 export interface Student {
   id: number;
@@ -12,7 +13,8 @@ export interface Student {
   age: string;
   club: string;
   specialCondition: string;
-  belt: string;
+  belt: string; // Current belt
+  targetBelt: string; // Target belt (new field)
   danStage: string;
 }
 
@@ -38,14 +40,31 @@ const getBeltColorClass = (belt: string) => {
 
 export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChange, belts }) => {
   const animationDelay = `${index * 0.1}s`;
-  const beltClass = getBeltColorClass(student.belt);
+  const currentBeltClass = getBeltColorClass(student.belt);
+  const targetBeltClass = getBeltColorClass(student.targetBelt);
+
+  // Function to determine available target belts based on current belt
+  const getNextBelts = (currentBelt: string): string[] => {
+    const beltOrder = ["Branca", "Amarela", "Vermelha", "Laranja", "Verde", "Estágio 1", "Estágio 2", "Estágio 3", "Roxa", "Marrom", "Preta", "Dans"];
+    const currentIndex = beltOrder.indexOf(currentBelt);
+    
+    if (currentIndex === -1 || currentIndex === beltOrder.length - 1) {
+      return [];
+    }
+    
+    // Return only the next belt in the progression
+    return [beltOrder[currentIndex + 1]];
+  };
+
+  // Get available target belts
+  const availableTargetBelts = student.belt ? getNextBelts(student.belt) : [];
 
   return (
     <Card 
       className="overflow-hidden group hover:shadow-lg transition-all duration-300 animate-scale-in"
       style={{ animationDelay }}
     >
-      <div className={cn("h-2 w-full transition-all duration-500 animate-belt-slide", beltClass)} 
+      <div className={cn("h-2 w-full transition-all duration-500 animate-belt-slide", currentBeltClass)} 
            style={{ animationDelay: `${animationDelay + 0.2}s` }} />
       
       <CardContent className="p-6 space-y-4">
@@ -105,50 +124,88 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor={`belt-${student.id}`} className="text-sm font-medium opacity-80">
-              Faixa Atual
-            </Label>
-            <Select 
-              value={student.belt} 
-              onValueChange={(value) => onChange(student.id, "belt", value)}
-            >
-              <SelectTrigger id={`belt-${student.id}`} className="form-select">
-                <SelectValue placeholder="Selecione a Faixa..." />
-              </SelectTrigger>
-              <SelectContent>
-                {/* Remove the empty string value option and use a placeholder in SelectValue instead */}
-                {belts.map((belt) => (
-                  <SelectItem key={belt} value={belt}>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${getBeltColorClass(belt)}`} />
-                      <span>{belt}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor={`belt-${student.id}`} className="text-sm font-medium opacity-80">
+                Faixa Atual
+              </Label>
+              <Select 
+                value={student.belt} 
+                onValueChange={(value) => {
+                  onChange(student.id, "belt", value);
+                  // Clear target belt when current belt changes
+                  onChange(student.id, "targetBelt", "");
+                }}
+              >
+                <SelectTrigger id={`belt-${student.id}`} className="form-select">
+                  <SelectValue placeholder="Selecione a Faixa..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {["Branca", ...belts].map((belt) => (
+                    <SelectItem key={belt} value={belt}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${getBeltColorClass(belt)}`} />
+                        <span>{belt}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {(student.belt === "Dans" || student.belt === "Estágio 1" || 
+              student.belt === "Estágio 2" || student.belt === "Estágio 3" || 
+              student.belt === "Preta") && (
+              <div className="space-y-2">
+                <Label htmlFor={`dan-${student.id}`} className="text-sm font-medium opacity-80">
+                  {student.belt === "Preta" ? "Dan" : 
+                   student.belt === "Dans" ? "Número do Dan" : 
+                   "Número do Estágio"}
+                </Label>
+                <Input
+                  id={`dan-${student.id}`}
+                  type="number"
+                  value={student.danStage}
+                  onChange={(e) => onChange(student.id, "danStage", e.target.value)}
+                  placeholder={`Número do ${student.belt === "Preta" ? "Dan" : 
+                               student.belt === "Dans" ? "Dan" : "Estágio"}`}
+                  className="form-input"
+                  min="1"
+                  max={student.belt === "Preta" || student.belt === "Dans" ? "10" : "3"}
+                />
+              </div>
+            )}
           </div>
           
-          {(student.belt === "Dans" || student.belt === "Estágio" || student.belt === "Preta") && (
+          {student.belt && (
             <div className="space-y-2">
-              <Label htmlFor={`dan-${student.id}`} className="text-sm font-medium opacity-80">
-                {student.belt === "Preta" ? "Dan" : 
-                 student.belt === "Dans" ? "Número do Dan" : 
-                 "Número do Estágio"}
+              <Label htmlFor={`target-belt-${student.id}`} className="text-sm font-medium opacity-80">
+                Faixa de Pretensão
               </Label>
-              <Input
-                id={`dan-${student.id}`}
-                type="number"
-                value={student.danStage}
-                onChange={(e) => onChange(student.id, "danStage", e.target.value)}
-                placeholder={`Número do ${student.belt === "Preta" ? "Dan" : 
-                             student.belt === "Dans" ? "Dan" : "Estágio"}`}
-                className="form-input"
-                min="1"
-                max={student.belt === "Preta" || student.belt === "Dans" ? "10" : "3"}
-              />
+              <div className="flex items-center gap-2">
+                <div className={`flex-shrink-0 w-3 h-3 rounded-full ${currentBeltClass}`} />
+                <ArrowRight className="flex-shrink-0 w-4 h-4 text-muted-foreground" />
+                <Select 
+                  value={student.targetBelt} 
+                  onValueChange={(value) => onChange(student.id, "targetBelt", value)}
+                  disabled={availableTargetBelts.length === 0}
+                >
+                  <SelectTrigger id={`target-belt-${student.id}`} className="form-select flex-grow">
+                    <SelectValue placeholder={availableTargetBelts.length ? "Selecione..." : "Selecione a faixa atual primeiro"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTargetBelts.map((belt) => (
+                      <SelectItem key={belt} value={belt}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${getBeltColorClass(belt)}`} />
+                          <span>{belt}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </div>
