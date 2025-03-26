@@ -5,8 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StudentCard, Student } from "./StudentCard";
 import BeltDisplay from "./BeltDisplay";
-import { Label } from "@/components/ui/label"; // Adding the missing import
-import { PlusCircle, MinusCircle, ArrowRight, User, Award, BookOpen, Swords, FileText, CalendarIcon, MapPinIcon } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { 
+  PlusCircle, MinusCircle, ArrowRight, User, Award, 
+  BookOpen, Swords, FileText, CalendarIcon, MapPinIcon,
+  CheckCircle, Save, Download, Printer, Share2
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
@@ -17,16 +21,19 @@ import { cn } from "@/lib/utils";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { SynchronizedEvaluation } from "./SynchronizedEvaluation";
+import { ExamResults } from "./ExamResults";
+import { useNavigate } from "react-router-dom";
 
 export default function KarateExam() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("students");
-  const belts = ["Amarela", "Vermelha", "Laranja", "Verde", "Estágio 1", "Estágio 2", "Estágio 3", "Roxa", "Marrom", "Preta", "Dans"];
+  const belts = ["Amarela", "Vermelha", "Laranja", "Verde", "Estágio 1", "Estágio 2", "Roxa", "Marrom", "Preta", "Dans"];
   const [examDate, setExamDate] = useState<Date | undefined>(undefined);
   const [examLocation, setExamLocation] = useState("");
   const [currentStudentIndex, setCurrentStudentIndex] = useState(0);
 
-  // Expanded evaluation states
+  // Evaluation states
   const [kihonScores, setKihonScores] = useState<{[key: number]: number}>({});
   const [kataScores, setKataScores] = useState<{[key: number]: number}>({});
   const [kumiteScores, setKumiteScores] = useState<{[key: number]: number}>({});
@@ -125,9 +132,28 @@ export default function KarateExam() {
   };
 
   const handleSubmit = () => {
+    // Check if all evaluations are complete
+    const incompleteEvaluations = students.some(student => {
+      return (
+        !kihonScores[student.id] ||
+        !kataScores[student.id] ||
+        !kumiteScores[student.id] ||
+        ((student.targetBelt === "Preta" || student.targetBelt === "Dans") && !knowledgeScores[student.id])
+      );
+    });
+
+    if (incompleteEvaluations) {
+      toast({
+        title: "Avaliação incompleta",
+        description: "Por favor, complete a avaliação de todos os alunos em todas as categorias aplicáveis.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     toast({
-      title: "Exame agendado",
-      description: "O exame de faixa foi registrado com sucesso!",
+      title: "Avaliação concluída",
+      description: "O exame de faixa foi finalizado com sucesso!",
     });
     
     // Here you would typically send data to a server
@@ -142,34 +168,27 @@ export default function KarateExam() {
       examinerNotes
     });
     
-    // Reset form or redirect
-    setTimeout(() => {
-      setActiveTab("confirmation");
-    }, 500);
+    // Move to results tab
+    setActiveTab("results");
   };
 
-  const handleEvaluationScoreChange = (
-    scoreType: 'kihon' | 'kata' | 'kumite' | 'knowledge',
-    studentId: number, 
-    score: number
-  ) => {
-    switch (scoreType) {
-      case 'kihon':
-        setKihonScores(prev => ({ ...prev, [studentId]: score }));
-        break;
-      case 'kata':
-        setKataScores(prev => ({ ...prev, [studentId]: score }));
-        break;
-      case 'kumite':
-        setKumiteScores(prev => ({ ...prev, [studentId]: score }));
-        break;
-      case 'knowledge':
-        setKnowledgeScores(prev => ({ ...prev, [studentId]: score }));
-        break;
-    }
+  const handleKihonScoreChange = (studentId: number, score: number) => {
+    setKihonScores(prev => ({ ...prev, [studentId]: score }));
   };
 
-  const handleExaminerNotesChange = (studentId: number, notes: string) => {
+  const handleKataScoreChange = (studentId: number, score: number) => {
+    setKataScores(prev => ({ ...prev, [studentId]: score }));
+  };
+
+  const handleKumiteScoreChange = (studentId: number, score: number) => {
+    setKumiteScores(prev => ({ ...prev, [studentId]: score }));
+  };
+
+  const handleKnowledgeScoreChange = (studentId: number, score: number) => {
+    setKnowledgeScores(prev => ({ ...prev, [studentId]: score }));
+  };
+
+  const handleNotesChange = (studentId: number, notes: string) => {
     setExaminerNotes(prev => ({ ...prev, [studentId]: notes }));
   };
 
@@ -177,38 +196,67 @@ export default function KarateExam() {
     return student.targetBelt === "Preta" || student.targetBelt === "Dans";
   };
 
-  const getCurrentStudent = () => {
-    return students[currentStudentIndex] || null;
+  // Handle printing and sharing
+  const handlePrint = () => {
+    toast({
+      title: "Impressão iniciada",
+      description: "O documento está sendo preparado para impressão."
+    });
+    window.print();
   };
 
-  const goToNextStudent = () => {
-    if (currentStudentIndex < students.length - 1) {
-      setCurrentStudentIndex(prev => prev + 1);
-    } else {
-      // If we're on the last student, go to next tab
-      const tabs = ["kihon", "kata", "kumite"];
-      const currentTabIndex = tabs.indexOf(activeTab);
-      
-      if (currentTabIndex < tabs.length - 1) {
-        setActiveTab(tabs[currentTabIndex + 1]);
-        setCurrentStudentIndex(0);
-      } else {
-        // If on last tab, check if any student needs knowledge test
-        const anyRequiresKnowledge = students.some(requiresKnowledgeTest);
-        if (anyRequiresKnowledge) {
-          setActiveTab("knowledge");
-          setCurrentStudentIndex(0);
-        } else {
-          handleSubmit(); // Submit if no knowledge test needed
-        }
-      }
-    }
+  const handleShare = () => {
+    toast({
+      title: "Compartilhamento",
+      description: "Função de compartilhamento em desenvolvimento."
+    });
+    // In a real implementation, this would generate a shareable PDF or link
   };
 
-  const goToPreviousStudent = () => {
-    if (currentStudentIndex > 0) {
-      setCurrentStudentIndex(prev => prev - 1);
-    }
+  const handleSave = () => {
+    const examInfo = {
+      date: examDate ? format(examDate, 'dd-MM-yyyy') : 'sem-data',
+      location: examLocation.replace(/\s+/g, '-').toLowerCase() || 'sem-local',
+      students: students.map(s => ({
+        ...s,
+        kihon: kihonScores[s.id] || 0,
+        kata: kataScores[s.id] || 0,
+        kumite: kumiteScores[s.id] || 0,
+        knowledge: knowledgeScores[s.id] || 0,
+        notes: examinerNotes[s.id] || ""
+      }))
+    };
+    
+    // In a real implementation, this would save to a database or local storage
+    localStorage.setItem(`exam-${examInfo.date}-${examInfo.location}`, JSON.stringify(examInfo));
+    
+    toast({
+      title: "Exame salvo",
+      description: "O registro do exame foi salvo com sucesso!"
+    });
+  };
+
+  const handleReset = () => {
+    setActiveTab("students");
+    setExamDate(undefined);
+    setExamLocation("");
+    setCurrentStudentIndex(0);
+    setKihonScores({});
+    setKataScores({});
+    setKumiteScores({});
+    setKnowledgeScores({});
+    setExaminerNotes({});
+    setStudents([
+      { id: 1, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" },
+      { id: 2, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" },
+      { id: 3, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" },
+      { id: 4, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" }
+    ]);
+    
+    toast({
+      title: "Formulário resetado",
+      description: "Um novo exame pode ser registrado agora."
+    });
   };
 
   const container = {
@@ -224,145 +272,6 @@ export default function KarateExam() {
   const item = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 }
-  };
-
-  const renderStudentInfo = (student: Student) => {
-    return (
-      <div className="bg-card rounded-lg p-4 shadow-sm border mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center">
-          <div className="w-full max-w-[200px]">
-            <BeltDisplay 
-              belt={student.belt} 
-              danStage={student.danStage} 
-              className="w-full mb-2"
-            />
-            <p className="text-center text-sm font-medium">
-              {student.belt}
-              {(student.belt === "Preta" || student.belt === "Dans") && student.danStage && 
-                ` ${student.danStage}º Dan`}
-              {(student.belt === "Estágio 1" || student.belt === "Estágio 2" || student.belt === "Estágio 3") && 
-                ` ${student.belt}`}
-            </p>
-            <div className="flex items-center justify-center gap-1 mt-1">
-              <ArrowRight className="w-3 h-3" />
-              <div className={`w-3 h-3 rounded-full ${getBeltColorClass(student.targetBelt)}`} />
-              <p className="text-xs font-medium">{student.targetBelt}</p>
-            </div>
-          </div>
-          
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg text-center md:text-left">{student.name}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium">Idade:</span> {student.age} anos
-              </p>
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium">Clube:</span> {student.club}
-              </p>
-              {student.specialCondition && (
-                <p className="text-sm text-muted-foreground col-span-2">
-                  <span className="font-medium">Condição Especial:</span> {student.specialCondition}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const getBeltColorClass = (belt: string) => {
-    switch(belt) {
-      case "Amarela": return "belt-yellow";
-      case "Vermelha": return "belt-red";
-      case "Laranja": return "belt-orange";
-      case "Verde": return "belt-green";
-      case "Roxa": return "belt-purple";
-      case "Marrom": return "belt-brown";
-      case "Preta": 
-      case "Dans": return "belt-black";
-      case "Estágio 1": 
-      case "Estágio 2": 
-      case "Estágio 3": return "belt-green";
-      default: return "belt-white";
-    }
-  };
-
-  const renderEvaluationSection = (
-    title: string, 
-    description: string, 
-    scoreType: 'kihon' | 'kata' | 'kumite' | 'knowledge',
-    icon: React.ReactNode
-  ) => {
-    const currentStudent = getCurrentStudent();
-    if (!currentStudent) return null;
-
-    const scores = {
-      'kihon': kihonScores,
-      'kata': kataScores,
-      'kumite': kumiteScores,
-      'knowledge': knowledgeScores
-    };
-
-    const currentScore = scores[scoreType][currentStudent.id] || 0;
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-2">
-          {icon}
-          <h2 className="text-xl font-semibold">{title} - Avaliação</h2>
-        </div>
-        
-        <p className="text-muted-foreground">{description}</p>
-        
-        {renderStudentInfo(currentStudent)}
-        
-        <div className="space-y-6 bg-card/50 rounded-lg p-6 border">
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <Label>Pontuação: {currentScore}</Label>
-              <span className="text-sm font-medium">
-                {currentScore < 5 ? "Insuficiente" : 
-                 currentScore < 7 ? "Regular" : 
-                 currentScore < 9 ? "Bom" : "Excelente"}
-              </span>
-            </div>
-            <Slider
-              value={[currentScore]}
-              min={0}
-              max={10}
-              step={0.5}
-              onValueChange={(value) => handleEvaluationScoreChange(scoreType, currentStudent.id, value[0])}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="examiner-notes">Observações do Examinador</Label>
-            <Textarea
-              id="examiner-notes"
-              placeholder="Descreva observações sobre o desempenho do aluno..."
-              value={examinerNotes[currentStudent.id] || ""}
-              onChange={(e) => handleExaminerNotesChange(currentStudent.id, e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-        </div>
-        
-        <div className="flex justify-between pt-4">
-          <Button 
-            variant="outline" 
-            onClick={goToPreviousStudent}
-            disabled={currentStudentIndex === 0}
-          >
-            Aluno Anterior
-          </Button>
-          
-          <Button onClick={goToNextStudent}>
-            {currentStudentIndex < students.length - 1 ? "Próximo Aluno" : "Próxima Etapa"}
-          </Button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -383,20 +292,20 @@ export default function KarateExam() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-5 mb-8">
-          <TabsTrigger value="students" disabled={activeTab === "confirmation"}>
+        <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-6 mb-8">
+          <TabsTrigger value="students" disabled={activeTab === "results"}>
             <User className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Alunos</span>
           </TabsTrigger>
-          <TabsTrigger value="kihon" disabled={activeTab === "students" || activeTab === "confirmation"}>
+          <TabsTrigger value="kihon" disabled={activeTab === "students" || activeTab === "results"}>
             <Award className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Kihon</span>
           </TabsTrigger>
-          <TabsTrigger value="kata" disabled={activeTab === "students" || activeTab === "confirmation"}>
+          <TabsTrigger value="kata" disabled={activeTab === "students" || activeTab === "results"}>
             <BookOpen className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Kata</span>
           </TabsTrigger>
-          <TabsTrigger value="kumite" disabled={activeTab === "students" || activeTab === "confirmation"}>
+          <TabsTrigger value="kumite" disabled={activeTab === "students" || activeTab === "results"}>
             <Swords className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Kumitê</span>
           </TabsTrigger>
@@ -404,12 +313,16 @@ export default function KarateExam() {
             value="knowledge" 
             disabled={
               activeTab === "students" || 
-              activeTab === "confirmation" || 
+              activeTab === "results" || 
               !students.some(requiresKnowledgeTest)
             }
           >
             <FileText className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Conhecimento</span>
+          </TabsTrigger>
+          <TabsTrigger value="results" disabled={activeTab === "students"}>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Resultados</span>
           </TabsTrigger>
         </TabsList>
 
@@ -512,86 +425,112 @@ export default function KarateExam() {
         </TabsContent>
 
         <TabsContent value="kihon">
-          {renderEvaluationSection(
-            "Kihon", 
-            "Avalie a técnica básica, postura e execução dos movimentos fundamentais.",
-            'kihon',
-            <Award className="h-5 w-5" />
-          )}
+          <SynchronizedEvaluation
+            students={students}
+            evaluationType="kihon"
+            scores={kihonScores}
+            notes={examinerNotes}
+            onScoreChange={handleKihonScoreChange}
+            onNotesChange={handleNotesChange}
+            title="Avaliação de Kihon"
+            description="Avalie a técnica básica, postura e execução dos movimentos fundamentais."
+          />
+          
+          <div className="flex justify-end mt-8">
+            <Button onClick={() => setActiveTab("kata")}>
+              Próxima Etapa
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="kata">
-          {renderEvaluationSection(
-            "Kata", 
-            "Avalie a execução do kata, incluindo ritmo, força, equilíbrio e precisão técnica.",
-            'kata',
-            <BookOpen className="h-5 w-5" />
-          )}
+          <SynchronizedEvaluation
+            students={students}
+            evaluationType="kata"
+            scores={kataScores}
+            notes={examinerNotes}
+            onScoreChange={handleKataScoreChange}
+            onNotesChange={handleNotesChange}
+            title="Avaliação de Kata"
+            description="Avalie a execução do kata, incluindo ritmo, força, equilíbrio e precisão técnica."
+          />
+          
+          <div className="flex justify-end mt-8">
+            <Button onClick={() => setActiveTab("kumite")}>
+              Próxima Etapa
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="kumite">
-          {renderEvaluationSection(
-            "Kumitê", 
-            "Avalie o combate, incluindo técnica, estratégia, controle e espírito marcial.",
-            'kumite',
-            <Swords className="h-5 w-5" />
-          )}
+          <SynchronizedEvaluation
+            students={students}
+            evaluationType="kumite"
+            scores={kumiteScores}
+            notes={examinerNotes}
+            onScoreChange={handleKumiteScoreChange}
+            onNotesChange={handleNotesChange}
+            title="Avaliação de Kumitê"
+            description="Avalie o combate, incluindo técnica, estratégia, controle e espírito marcial."
+          />
+          
+          <div className="flex justify-end mt-8">
+            {students.some(requiresKnowledgeTest) ? (
+              <Button onClick={() => setActiveTab("knowledge")}>
+                Próxima Etapa
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button onClick={handleSubmit}>
+                Finalizar Avaliação
+                <CheckCircle className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="knowledge">
-          {renderEvaluationSection(
-            "Conhecimentos", 
-            "Avalie o conhecimento teórico, histórico e filosófico do Karatê, necessário para faixas pretas e dans.",
-            'knowledge',
-            <FileText className="h-5 w-5" />
-          )}
+          <SynchronizedEvaluation
+            students={students.filter(requiresKnowledgeTest)}
+            evaluationType="knowledge"
+            scores={knowledgeScores}
+            notes={examinerNotes}
+            onScoreChange={handleKnowledgeScoreChange}
+            onNotesChange={handleNotesChange}
+            title="Avaliação de Conhecimentos"
+            description="Avalie o conhecimento teórico, histórico e filosófico do Karatê, necessário para faixas pretas e dans."
+          />
+          
+          <div className="flex justify-end mt-8">
+            <Button onClick={handleSubmit}>
+              Finalizar Avaliação
+              <CheckCircle className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </TabsContent>
 
-        <TabsContent value="confirmation">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="text-center max-w-md mx-auto space-y-6 py-12"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 15 }}
-              className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto"
-            >
-              <svg className="h-12 w-12 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </motion.div>
-            
-            <h2 className="text-2xl font-bold">Exame Registrado com Sucesso!</h2>
-            <p className="text-muted-foreground">
-              O registro do exame de faixa foi concluído. Os alunos serão notificados e o instrutor receberá a confirmação por email.
-            </p>
-            
-            <div className="pt-6">
-              <Button onClick={() => {
-                setActiveTab("students");
-                setExamDate(undefined);
-                setExamLocation("");
-                setCurrentStudentIndex(0);
-                setKihonScores({});
-                setKataScores({});
-                setKumiteScores({});
-                setKnowledgeScores({});
-                setExaminerNotes({});
-                setStudents([
-                  { id: 1, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" },
-                  { id: 2, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" },
-                  { id: 3, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" },
-                  { id: 4, name: "", age: "", club: "", specialCondition: "", belt: "", targetBelt: "", danStage: "" }
-                ]);
-              }}>
-                Registrar novo exame
-              </Button>
-            </div>
-          </motion.div>
+        <TabsContent value="results">
+          <ExamResults
+            students={students}
+            examDate={examDate}
+            examLocation={examLocation}
+            kihonScores={kihonScores}
+            kataScores={kataScores}
+            kumiteScores={kumiteScores}
+            knowledgeScores={knowledgeScores}
+            examinerNotes={examinerNotes}
+            onPrint={handlePrint}
+            onShare={handleShare}
+            onSave={handleSave}
+          />
+          
+          <div className="flex justify-center mt-10">
+            <Button onClick={handleReset} variant="outline">
+              Registrar novo exame
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

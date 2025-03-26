@@ -1,89 +1,52 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
+    --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
-
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --ring: 262.1 83.3% 57.8%;
+    --radius: 0.75rem;
   }
 
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --ring: 262.1 83.3% 57.8%;
   }
 }
 
@@ -91,106 +54,78 @@
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground font-inter antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    @apply bg-background text-foreground;
   }
+}
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+/* Belt colors */
+.belt-yellow {
+  @apply bg-yellow-400;
+}
+.belt-red {
+  @apply bg-red-600;
+}
+.belt-orange {
+  @apply bg-orange-500;
+}
+.belt-green {
+  @apply bg-green-600;
+}
+.belt-purple {
+  @apply bg-purple-600;
+}
+.belt-brown {
+  @apply bg-amber-800;
+}
+.belt-black {
+  @apply bg-black;
+}
+.belt-white {
+  @apply bg-white border border-gray-300;
+}
+
+/* Animations */
+@keyframes belt-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-belt-slide {
+  animation: belt-slide 0.5s ease-out forwards;
+}
+
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
   }
   
-  ::-webkit-scrollbar-track {
-    background: transparent;
+  body {
+    background: white !important;
   }
   
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full;
+  .print-container {
+    break-inside: avoid;
+    padding: 1rem;
   }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
-  }
-
-  /* Focus styles */
-  :focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
-
-  /* Belt colors for visualization */
-  .belt-yellow {
-    @apply bg-karate-yellow;
-  }
-  .belt-red {
-    @apply bg-karate-red;
-  }
-  .belt-orange {
-    @apply bg-karate-orange;
-  }
-  .belt-green {
-    @apply bg-karate-green;
-  }
-  .belt-purple {
-    @apply bg-karate-purple;
-  }
-  .belt-brown {
-    @apply bg-karate-brown;
-  }
-  .belt-black {
-    @apply bg-karate-black;
-  }
-  .belt-white {
-    @apply bg-karate-white border border-gray-200;
-  }
-}
-
-/* Custom animations and transitions */
-.page-transition-enter {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.page-transition-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
-}
-
-.page-transition-exit {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.page-transition-exit-active {
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 300ms, transform 300ms;
-}
-
-/* Glass effect */
-.glass {
-  @apply bg-white/80 backdrop-blur-md border border-white/20;
-}
-
-.glass-dark {
-  @apply bg-black/50 backdrop-blur-md border border-white/10;
-}
-
-/* Input and form styles */
-.form-input {
-  @apply w-full px-4 py-3 rounded-md bg-white border border-gray-200 shadow-sm transition-all duration-200 ease-in-out;
-  @apply focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:outline-none;
-  @apply placeholder:text-gray-400 placeholder:font-light;
-}
-
-.form-select {
-  @apply w-full px-4 py-3 rounded-md bg-white border border-gray-200 shadow-sm transition-all duration-200 ease-in-out;
-  @apply focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:outline-none;
-  @apply appearance-none bg-no-repeat;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 0.75rem center;
-  background-size: 1.25em 1.25em;
 }

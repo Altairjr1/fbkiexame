@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,14 +44,20 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
 
   // Function to determine available target belts based on current belt
   const getNextBelts = (currentBelt: string): string[] => {
-    const beltOrder = ["Branca", "Amarela", "Vermelha", "Laranja", "Verde", "Estágio 1", "Estágio 2", "Estágio 3", "Roxa", "Marrom", "Preta", "Dans"];
+    // Modified belt order - removed Estágio 3
+    const beltOrder = ["Branca", "Amarela", "Vermelha", "Laranja", "Verde", "Estágio 1", "Estágio 2", "Roxa", "Marrom", "Preta", "Dans"];
     const currentIndex = beltOrder.indexOf(currentBelt);
     
     if (currentIndex === -1 || currentIndex === beltOrder.length - 1) {
       return [];
     }
     
-    // Return only the next belt in the progression
+    // Special case for Verde belt
+    if (currentBelt === "Verde") {
+      return ["Estágio 1", "Estágio 2", "Roxa"];
+    }
+    
+    // For other belts, return only the next belt in the progression
     return [beltOrder[currentIndex + 1]];
   };
 
@@ -143,20 +148,22 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
                 </SelectTrigger>
                 <SelectContent>
                   {["Branca", ...belts].map((belt) => (
-                    <SelectItem key={belt} value={belt}>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${getBeltColorClass(belt)}`} />
-                        <span>{belt}</span>
-                      </div>
-                    </SelectItem>
+                    // Skip Estágio 3 in the dropdown
+                    belt !== "Estágio 3" && (
+                      <SelectItem key={belt} value={belt}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${getBeltColorClass(belt)}`} />
+                          <span>{belt}</span>
+                        </div>
+                      </SelectItem>
+                    )
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
             {(student.belt === "Dans" || student.belt === "Estágio 1" || 
-              student.belt === "Estágio 2" || student.belt === "Estágio 3" || 
-              student.belt === "Preta") && (
+              student.belt === "Estágio 2" || student.belt === "Preta") && (
               <div className="space-y-2">
                 <Label htmlFor={`dan-${student.id}`} className="text-sm font-medium opacity-80">
                   {student.belt === "Preta" ? "Dan" : 
@@ -172,7 +179,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
                                student.belt === "Dans" ? "Dan" : "Estágio"}`}
                   className="form-input"
                   min="1"
-                  max={student.belt === "Preta" || student.belt === "Dans" ? "10" : "3"}
+                  max={student.belt === "Preta" || student.belt === "Dans" ? "10" : "2"}
                 />
               </div>
             )}
