@@ -118,7 +118,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
                 <SelectValue placeholder="Selecione a Faixa..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Selecione a Faixa...</SelectItem>
+                {/* Remove the empty string value option and use a placeholder in SelectValue instead */}
                 {belts.map((belt) => (
                   <SelectItem key={belt} value={belt}>
                     <div className="flex items-center gap-2">
