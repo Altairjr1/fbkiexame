@@ -17,9 +17,9 @@ interface ExamResultsProps {
   kumiteScores: {[key: number]: number};
   knowledgeScores: {[key: number]: number};
   examinerNotes: {[key: number]: string};
-  onPrint: () => void;
-  onShare: () => void;
-  onSave: () => void;
+  onPrint: (studentId: number) => void;
+  onShare: (studentId: number) => void;
+  onDownload: (studentId: number) => void;
 }
 
 export const ExamResults: React.FC<ExamResultsProps> = ({
@@ -33,7 +33,7 @@ export const ExamResults: React.FC<ExamResultsProps> = ({
   examinerNotes,
   onPrint,
   onShare,
-  onSave
+  onDownload
 }) => {
   // Calculate average score and determine if passed
   const calculateResults = (student: Student) => {
@@ -158,27 +158,27 @@ export const ExamResults: React.FC<ExamResultsProps> = ({
                       <p className="text-muted-foreground italic mt-1">"{examinerNotes[student.id]}"</p>
                     </div>
                   )}
+                  
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => onPrint(student.id)}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Imprimir
+                    </Button>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => onShare(student.id)}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Compartilhar
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => onDownload(student.id)}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Baixar
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
           );
         })}
       </motion.div>
-
-      <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-        <Button variant="outline" onClick={onPrint} className="flex items-center gap-2">
-          <Printer className="h-4 w-4" />
-          Imprimir
-        </Button>
-        <Button variant="outline" onClick={onShare} className="flex items-center gap-2">
-          <Share2 className="h-4 w-4" />
-          Compartilhar
-        </Button>
-        <Button onClick={onSave} className="flex items-center gap-2">
-          <Download className="h-4 w-4" />
-          Salvar
-        </Button>
-      </div>
     </div>
   );
 };

@@ -1,41 +1,57 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from '@/components/ui/navigation-menu';
+import { BarChart3, FileText, Home } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Header = () => {
   return (
-    <motion.header 
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/70 shadow-sm"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          <div className="flex items-center">
-            <motion.div 
-              initial={{ rotate: -180, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              transition={{ duration: 0.7, type: "spring" }}
-              className="w-10 h-10 rounded-full bg-primary flex items-center justify-center mr-3"
-            >
-              <span className="text-white font-bold">KB</span>
-            </motion.div>
-            <div>
-              <h1 className="text-lg font-semibold">Karate Belt Examiner</h1>
-              <p className="text-xs text-muted-foreground">Sistema de Gestão de Exames</p>
-            </div>
-          </div>
-          
-          <nav className="hidden md:flex space-x-6">
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Início</a>
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Exames</a>
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Alunos</a>
-            <a href="#" className="text-sm font-medium hover:text-primary transition-colors">Relatórios</a>
-          </nav>
-        </div>
+    <header className="fixed w-full top-0 bg-background border-b z-10">
+      <div className="container flex h-16 items-center">
+        <Link
+          to="/"
+          className="flex items-center mr-8 text-lg font-semibold tracking-tight"
+        >
+          <img
+            src="https://via.placeholder.com/40x40?text=FBKI"
+            alt="Logo"
+            className="h-8 w-8 mr-2"
+          />
+          FBKI Exames
+        </Link>
+        
+        <NavigationMenu className="mx-auto">
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <Link to="/">
+                <NavigationMenuLink
+                  className={cn(
+                    "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
+                  )}
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  <span>Início</span>
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+            
+            <NavigationMenuItem>
+              <Link to="/archive">
+                <NavigationMenuLink
+                  className={cn(
+                    "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
+                  )}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Exames</span>
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       </div>
-    </motion.header>
+    </header>
   );
 };
 
