@@ -5,14 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StudentCard, Student } from "./StudentCard";
 import BeltDisplay from "./BeltDisplay";
-import { PlusCircle, MinusCircle, ArrowRight, User, Medal } from "lucide-react";
+import { PlusCircle, MinusCircle, ArrowRight, User, Medal, CalendarIcon, MapPinIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export default function KarateExam() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("students");
   const belts = ["Amarela", "Vermelha", "Laranja", "Verde", "Estágio", "Roxa", "Marrom", "Preta", "Dans"];
+  const [examDate, setExamDate] = useState<Date | undefined>(undefined);
+  const [examLocation, setExamLocation] = useState("");
 
   const [students, setStudents] = useState<Student[]>([
     { id: 1, name: "", age: "", club: "", specialCondition: "", belt: "", danStage: "" },
@@ -74,6 +81,24 @@ export default function KarateExam() {
       toast({
         title: "Informações incompletas",
         description: "Por favor, preencha todos os campos obrigatórios para cada aluno.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!examDate) {
+      toast({
+        title: "Data não informada",
+        description: "Por favor, informe a data do exame.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!examLocation) {
+      toast({
+        title: "Local não informado",
+        description: "Por favor, informe o local do exame.",
         variant: "destructive"
       });
       return;
@@ -154,6 +179,60 @@ export default function KarateExam() {
         </TabsList>
 
         <TabsContent value="students" className="space-y-6">
+          {/* Exam Information Section */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="bg-card rounded-lg p-6 border shadow-sm"
+          >
+            <h2 className="text-xl font-semibold mb-4">Informações do Exame</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data do Exame</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !examDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {examDate ? format(examDate, "dd/MM/yyyy") : <span>Selecione a data...</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={examDate}
+                      onSelect={setExamDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Local do Exame</label>
+                <div className="flex">
+                  <div className="relative flex-grow">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <MapPinIcon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <Input 
+                      value={examLocation}
+                      onChange={(e) => setExamLocation(e.target.value)}
+                      placeholder="Informe o local do exame..." 
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           <motion.div 
             variants={container}
             initial="hidden"
@@ -206,6 +285,16 @@ export default function KarateExam() {
           >
             <div className="bg-secondary/50 rounded-lg p-6 mb-6">
               <h2 className="text-xl font-semibold mb-4">Revisão dos dados</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium">Data do Exame:</p>
+                  <p className="font-semibold">{examDate ? format(examDate, "dd/MM/yyyy") : "Não informada"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground font-medium">Local do Exame:</p>
+                  <p className="font-semibold">{examLocation || "Não informado"}</p>
+                </div>
+              </div>
               <p className="text-muted-foreground">
                 Verifique os dados dos alunos antes de confirmar o registro do exame de faixa.
                 Certifique-se de que todas as informações estão corretas.
@@ -297,6 +386,8 @@ export default function KarateExam() {
             <div className="pt-6">
               <Button onClick={() => {
                 setActiveTab("students");
+                setExamDate(undefined);
+                setExamLocation("");
                 setStudents([
                   { id: 1, name: "", age: "", club: "", specialCondition: "", belt: "", danStage: "" },
                   { id: 2, name: "", age: "", club: "", specialCondition: "", belt: "", danStage: "" },
