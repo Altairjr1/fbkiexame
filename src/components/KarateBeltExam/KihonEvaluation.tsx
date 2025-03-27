@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import BeltDisplay from "./BeltDisplay";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, XCircle, Slash } from 'lucide-react';
+import { CheckCircle2, XCircle, Slash, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
 
 interface KihonEvaluationProps {
   student: Student;
@@ -31,19 +33,33 @@ const getCriteriaForBelt = (targetBelt: string): CriteriaGroup[] => {
   const baseCriteria: CriteriaGroup[] = [
     {
       name: "Bases",
-      criteria: ["ZENKUTSO DACHI", "KOKUTSU DACHI", "KIBA DACHI", "HEIKO DACHI", "HEISOKU DACHI"]
+      criteria: ["ZENKUTSO DACHI", "KOKUTSU DACHI", "KIBA DACHI", "HEIKO DACHI", "HEISOKU DACHI", "FUDO DACHI", "NEKO ASHI DACHI", "SANCHIN DACHI"]
     },
     {
       name: "Movimentos",
-      criteria: ["OI ZUKI", "TETSUI", "AGE UKE", "GEDAN BARAI", "SOTO UKE", "UCHI UKE", "SHUTO UKE", "MAI GUERI KEAGUE", "YOKO GUERI KEAGUE"]
+      criteria: [
+        "OI ZUKI", "GYAKU ZUKI", "URAKEN", "TETSUI", "EMPI", "NUKITE", 
+        "AGE UKE", "GEDAN BARAI", "SOTO UKE", "UCHI UKE", "SHUTO UKE", 
+        "MAI GUERI KEAGUE", "MAI GUERI KEKOMI", "YOKO GUERI KEAGUE", "YOKO GUERI KEKOMI",
+        "MAWASHI GUERI", "USHIRO GUERI"
+      ]
     },
     {
       name: "Gerais",
-      criteria: ["CINTURA", "CONHECIMENTO", "COORDENAÇÃO", "EMBUZEN", "ESCUDO", "ESPIRITO", "FORMA", "KIAI", "KIMÊ", "POSTURA", "RIKIASHI", "RIKITE", "UNIFORME", "VISTA"]
+      criteria: [
+        "CINTURA", "CONHECIMENTO", "COORDENAÇÃO", "EMBUZEN", "ESCUDO", 
+        "ESPIRITO", "FORMA", "KIAI", "KIMÊ", "POSTURA", "RIKIASHI", 
+        "RIKITE", "UNIFORME", "VISTA", "EQUILÍBRIO", "RITMO"
+      ]
     }
   ];
 
-  // In a real application, you might add more specific criteria based on belt level
+  // Add more specific criteria based on belt level
+  if (targetBelt === "Preta" || targetBelt === "Dans") {
+    baseCriteria[1].criteria.push("URAKEN UCHI", "HAITO UCHI", "HAISHU UCHI");
+    baseCriteria[2].criteria.push("ESTRATÉGIA", "RESPIRAÇÃO", "ZANSHIN");
+  }
+
   return baseCriteria;
 };
 
@@ -58,6 +74,8 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
 }) => {
   const [criteriaMarks, setCriteriaMarks] = useState<{[key: string]: string}>({});
   const criteriaGroups = getCriteriaForBelt(student.targetBelt);
+  const [expanded, setExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState("bases");
   
   // Calculate score based on marks
   const calculateScore = (marks: {[key: string]: string}) => {
@@ -69,7 +87,7 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
       else if (mark === '*') totalScore -= 0.5;
     });
     
-    // Ensure score is not negative
+    // Ensure score is not negative and round to 1 decimal place
     return Math.max(0, Number(totalScore.toFixed(1)));
   };
   
@@ -108,9 +126,14 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
     }
   };
 
+  const findCriteriaGroup = (name: string) => {
+    return criteriaGroups.find(group => group.name === name);
+  };
+
   return (
-    <Card className="overflow-hidden border shadow-sm">
-      <CardHeader className="flex flex-row items-center gap-2 bg-muted/50 py-3 px-4">
+    <Card className={cn("overflow-hidden border shadow-sm transition-all duration-300", 
+      expanded ? "fixed inset-4 z-50 m-4 max-w-none overflow-auto" : "")}>
+      <CardHeader className="flex flex-row items-center gap-2 bg-muted/50 py-3 px-4 sticky top-0 z-10">
         <div className="w-10 flex-shrink-0">
           <BeltDisplay 
             belt={student.targetBelt} 
@@ -135,9 +158,18 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
           <div className="text-xl font-bold">{score}</div>
           <div className="text-xs text-muted-foreground">Pontuação</div>
         </div>
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="ml-2" 
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </Button>
       </CardHeader>
       
-      <CardContent className="p-3">
+      <CardContent className={cn("p-3", expanded ? "pb-20" : "")}>
         <div className="mb-3">
           <Label htmlFor={`examiner-${student.id}`} className="text-sm">Nome do Examinador*</Label>
           <Input 
@@ -150,79 +182,275 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
           />
         </div>
         
-        {criteriaGroups.map((group, groupIndex) => (
-          <div key={groupIndex} className="mb-4">
-            <h4 className="font-semibold text-sm mb-1">{group.name}</h4>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px] py-2 text-xs">Critério</TableHead>
-                  <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
-                  <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
-                  <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {group.criteria.map((criterion, i) => {
-                  const criteriaKey = `${group.name}-${criterion}`;
-                  return (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
-                      <TableCell className="text-center py-1">
-                        <button
-                          onClick={() => handleMarkChange(criteriaKey, '/')}
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
-                            criteriaMarks[criteriaKey] === '/' 
-                              ? "bg-amber-100 text-amber-700" 
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <Slash className={cn(
-                            "h-3.5 w-3.5",
-                            criteriaMarks[criteriaKey] === '/' ? "opacity-100" : "opacity-40"
-                          )} />
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-center py-1">
-                        <button
-                          onClick={() => handleMarkChange(criteriaKey, 'X')}
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
-                            criteriaMarks[criteriaKey] === 'X' 
-                              ? "bg-orange-100 text-orange-700" 
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <XCircle className={cn(
-                            "h-3.5 w-3.5",
-                            criteriaMarks[criteriaKey] === 'X' ? "opacity-100" : "opacity-40"
-                          )} />
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-center py-1">
-                        <button
-                          onClick={() => handleMarkChange(criteriaKey, '*')}
-                          className={cn(
-                            "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
-                            criteriaMarks[criteriaKey] === '*' 
-                              ? "bg-red-100 text-red-700" 
-                              : "hover:bg-muted"
-                          )}
-                        >
-                          <span className={cn(
-                            "text-base font-bold",
-                            criteriaMarks[criteriaKey] === '*' ? "opacity-100" : "opacity-40"
-                          )}>*</span>
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+        <div className="mb-4 overflow-hidden rounded-md border">
+          <div className="flex items-center justify-between p-2 bg-gray-100 border-b">
+            <div className="flex space-x-1">
+              <div className="h-3 w-3 rounded-full bg-red-500"></div>
+              <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+              <div className="h-3 w-3 rounded-full bg-green-500"></div>
+            </div>
+            <div className="text-xs font-medium text-center flex-grow">
+              Avaliação de Kihon - {student.name}
+            </div>
+            <div className="w-4"></div>
           </div>
-        ))}
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full justify-start rounded-none border-b bg-white px-2">
+              <TabsTrigger value="bases" className="data-[state=active]:bg-gray-100">
+                Bases
+              </TabsTrigger>
+              <TabsTrigger value="movimentos" className="data-[state=active]:bg-gray-100">
+                Movimentos
+              </TabsTrigger>
+              <TabsTrigger value="gerais" className="data-[state=active]:bg-gray-100">
+                Gerais
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="p-3">
+              <TabsContent value="bases" className="mt-0">
+                <div className="text-sm mb-2">
+                  <p className="text-muted-foreground">Avalie as bases do estudante. Cada marca reduz a pontuação:</p>
+                  <div className="flex space-x-4 text-xs mt-1">
+                    <span className="flex items-center"><Slash className="h-3 w-3 mr-1 text-amber-600" /> -0.2 pontos (pequeno ajuste)</span>
+                    <span className="flex items-center"><XCircle className="h-3 w-3 mr-1 text-orange-600" /> -0.4 pontos (ajuste necessário)</span>
+                    <span className="flex items-center"><span className="text-base font-bold mr-1 text-red-600">*</span> -0.5 pontos (correção crítica)</span>
+                  </div>
+                </div>
+                
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px] py-2 text-xs">Base</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {findCriteriaGroup("Bases")?.criteria.map((criterion, i) => {
+                      const criteriaKey = `Bases-${criterion}`;
+                      return (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, '/')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === '/' 
+                                  ? "bg-amber-100 text-amber-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <Slash className={cn(
+                                "h-3.5 w-3.5",
+                                criteriaMarks[criteriaKey] === '/' ? "opacity-100" : "opacity-40"
+                              )} />
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, 'X')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === 'X' 
+                                  ? "bg-orange-100 text-orange-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <XCircle className={cn(
+                                "h-3.5 w-3.5",
+                                criteriaMarks[criteriaKey] === 'X' ? "opacity-100" : "opacity-40"
+                              )} />
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, '*')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === '*' 
+                                  ? "bg-red-100 text-red-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <span className={cn(
+                                "text-base font-bold",
+                                criteriaMarks[criteriaKey] === '*' ? "opacity-100" : "opacity-40"
+                              )}>*</span>
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+              
+              <TabsContent value="movimentos" className="mt-0">
+                <div className="text-sm mb-2">
+                  <p className="text-muted-foreground">Avalie os movimentos do estudante. Cada marca reduz a pontuação:</p>
+                  <div className="flex space-x-4 text-xs mt-1">
+                    <span className="flex items-center"><Slash className="h-3 w-3 mr-1 text-amber-600" /> -0.2 pontos (pequeno ajuste)</span>
+                    <span className="flex items-center"><XCircle className="h-3 w-3 mr-1 text-orange-600" /> -0.4 pontos (ajuste necessário)</span>
+                    <span className="flex items-center"><span className="text-base font-bold mr-1 text-red-600">*</span> -0.5 pontos (correção crítica)</span>
+                  </div>
+                </div>
+                
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px] py-2 text-xs">Movimento</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {findCriteriaGroup("Movimentos")?.criteria.map((criterion, i) => {
+                      const criteriaKey = `Movimentos-${criterion}`;
+                      return (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, '/')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === '/' 
+                                  ? "bg-amber-100 text-amber-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <Slash className={cn(
+                                "h-3.5 w-3.5",
+                                criteriaMarks[criteriaKey] === '/' ? "opacity-100" : "opacity-40"
+                              )} />
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, 'X')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === 'X' 
+                                  ? "bg-orange-100 text-orange-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <XCircle className={cn(
+                                "h-3.5 w-3.5",
+                                criteriaMarks[criteriaKey] === 'X' ? "opacity-100" : "opacity-40"
+                              )} />
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, '*')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === '*' 
+                                  ? "bg-red-100 text-red-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <span className={cn(
+                                "text-base font-bold",
+                                criteriaMarks[criteriaKey] === '*' ? "opacity-100" : "opacity-40"
+                              )}>*</span>
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+              
+              <TabsContent value="gerais" className="mt-0">
+                <div className="text-sm mb-2">
+                  <p className="text-muted-foreground">Avalie os aspectos gerais do estudante. Cada marca reduz a pontuação:</p>
+                  <div className="flex space-x-4 text-xs mt-1">
+                    <span className="flex items-center"><Slash className="h-3 w-3 mr-1 text-amber-600" /> -0.2 pontos (pequeno ajuste)</span>
+                    <span className="flex items-center"><XCircle className="h-3 w-3 mr-1 text-orange-600" /> -0.4 pontos (ajuste necessário)</span>
+                    <span className="flex items-center"><span className="text-base font-bold mr-1 text-red-600">*</span> -0.5 pontos (correção crítica)</span>
+                  </div>
+                </div>
+                
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px] py-2 text-xs">Aspecto</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
+                      <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {findCriteriaGroup("Gerais")?.criteria.map((criterion, i) => {
+                      const criteriaKey = `Gerais-${criterion}`;
+                      return (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, '/')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === '/' 
+                                  ? "bg-amber-100 text-amber-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <Slash className={cn(
+                                "h-3.5 w-3.5",
+                                criteriaMarks[criteriaKey] === '/' ? "opacity-100" : "opacity-40"
+                              )} />
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, 'X')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === 'X' 
+                                  ? "bg-orange-100 text-orange-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <XCircle className={cn(
+                                "h-3.5 w-3.5",
+                                criteriaMarks[criteriaKey] === 'X' ? "opacity-100" : "opacity-40"
+                              )} />
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-center py-1">
+                            <button
+                              onClick={() => handleMarkChange(criteriaKey, '*')}
+                              className={cn(
+                                "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                criteriaMarks[criteriaKey] === '*' 
+                                  ? "bg-red-100 text-red-700" 
+                                  : "hover:bg-muted"
+                              )}
+                            >
+                              <span className={cn(
+                                "text-base font-bold",
+                                criteriaMarks[criteriaKey] === '*' ? "opacity-100" : "opacity-40"
+                              )}>*</span>
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
         
         <div className="space-y-1 mt-3">
           <Label htmlFor={`notes-${student.id}`} className="text-sm">Observações</Label>
