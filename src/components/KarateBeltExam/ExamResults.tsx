@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Student } from './StudentCard';
 import { Button } from "@/components/ui/button";
@@ -37,20 +36,16 @@ export const ExamResults: React.FC<ExamResultsProps> = ({
   onDownload,
   onPrintList
 }) => {
-  // Calculate average score and determine if passed
   const calculateResults = (student: Student) => {
     const scores = [];
     
-    // Always include kihon and kata
     if (kihonScores[student.id] !== undefined) scores.push(kihonScores[student.id]);
     if (kataScores[student.id] !== undefined) scores.push(kataScores[student.id]);
     
-    // Only include kumite score for non-yellow belt candidates
     if (student.targetBelt !== "Amarela" && kumiteScores[student.id] !== undefined) {
       scores.push(kumiteScores[student.id]);
     }
     
-    // Only include knowledge score for black belt or dan candidates
     if ((student.targetBelt === "Preta" || student.targetBelt === "Dans") && 
         knowledgeScores[student.id] !== undefined) {
       scores.push(knowledgeScores[student.id]);
@@ -67,7 +62,6 @@ export const ExamResults: React.FC<ExamResultsProps> = ({
     };
   };
 
-  // Count passed and failed students
   const passedCount = students.filter(student => calculateResults(student).passed).length;
 
   return (

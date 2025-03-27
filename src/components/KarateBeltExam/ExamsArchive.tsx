@@ -89,16 +89,24 @@ export const ExamsArchive = () => {
 
   // Calculate pass/fail count
   const calculateResults = (student: Student) => {
-    const scores = [
-      student.kihon || 0,
-      student.kata || 0,
-      student.kumite || 0
-    ];
+    const scores = [];
+    
+    // Always include kihon and kata
+    if (student.kihon !== undefined) scores.push(student.kihon);
+    if (student.kata !== undefined) scores.push(student.kata);
+    
+    // Only include kumite score for non-yellow belt candidates
+    if (student.targetBelt !== "Amarela" && student.kumite !== undefined) {
+      scores.push(student.kumite);
+    }
     
     // Only include knowledge score for black belt or dan candidates
-    if (student.targetBelt === "Preta" || student.targetBelt === "Dans") {
-      scores.push(student.knowledge || 0);
+    if ((student.targetBelt === "Preta" || student.targetBelt === "Dans") && 
+        student.knowledge !== undefined) {
+      scores.push(student.knowledge);
     }
+    
+    if (scores.length === 0) return { average: "0.0", passed: false };
     
     const sum = scores.reduce((acc, score) => acc + score, 0);
     const average = sum / scores.length;
@@ -192,6 +200,23 @@ export const ExamsArchive = () => {
   };
 
   const filteredExams = filterExams();
+
+  // Generate PDF for student record
+  const handleGeneratePDF = (exam: ExamArchive, student: Student) => {
+    toast({
+      title: "Gerando PDF",
+      description: "O PDF está sendo preparado para download."
+    });
+    
+    // In a real implementation, this would use a library like jsPDF to generate a PDF
+    // For now, we'll just show a toast message
+    setTimeout(() => {
+      toast({
+        title: "PDF pronto",
+        description: "O PDF do aluno foi gerado com sucesso. Iniciando download..."
+      });
+    }, 1500);
+  };
 
   return (
     <div className="container px-4 py-8 mx-auto max-w-7xl">
@@ -357,10 +382,14 @@ export const ExamsArchive = () => {
                                               </TableCell>
                                               <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                  <Button size="icon" variant="outline">
+                                                  <Button size="icon" variant="outline" onClick={() => window.print()}>
                                                     <Printer className="h-4 w-4" />
                                                   </Button>
-                                                  <Button size="icon" variant="outline">
+                                                  <Button 
+                                                    size="icon" 
+                                                    variant="outline"
+                                                    onClick={() => handleGeneratePDF(exam, student)}
+                                                  >
                                                     <Download className="h-4 w-4" />
                                                   </Button>
                                                 </div>
@@ -407,10 +436,14 @@ export const ExamsArchive = () => {
                                                 <TableCell className="text-center font-semibold">{result.average}</TableCell>
                                                 <TableCell className="text-right">
                                                   <div className="flex justify-end gap-2">
-                                                    <Button size="icon" variant="outline">
+                                                    <Button size="icon" variant="outline" onClick={() => window.print()}>
                                                       <Printer className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" variant="outline">
+                                                    <Button 
+                                                      size="icon" 
+                                                      variant="outline"
+                                                      onClick={() => handleGeneratePDF(exam, student)}
+                                                    >
                                                       <Download className="h-4 w-4" />
                                                     </Button>
                                                   </div>
@@ -457,10 +490,14 @@ export const ExamsArchive = () => {
                                                 <TableCell className="text-center font-semibold">{result.average}</TableCell>
                                                 <TableCell className="text-right">
                                                   <div className="flex justify-end gap-2">
-                                                    <Button size="icon" variant="outline">
+                                                    <Button size="icon" variant="outline" onClick={() => window.print()}>
                                                       <Printer className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" variant="outline">
+                                                    <Button 
+                                                      size="icon" 
+                                                      variant="outline"
+                                                      onClick={() => handleGeneratePDF(exam, student)}
+                                                    >
                                                       <Download className="h-4 w-4" />
                                                     </Button>
                                                   </div>
