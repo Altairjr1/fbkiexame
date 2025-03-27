@@ -1,7 +1,14 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger } from '@/components/ui/navigation-menu';
+import { 
+  NavigationMenu, 
+  NavigationMenuContent, 
+  NavigationMenuItem, 
+  NavigationMenuList, 
+  NavigationMenuTrigger,
+  NavigationMenuLink
+} from '@/components/ui/navigation-menu';
 import { BarChart3, FileText, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
