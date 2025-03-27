@@ -14,9 +14,9 @@ const Header = () => {
           className="flex items-center mr-8 text-lg font-semibold tracking-tight"
         >
           <img
-            src="https://via.placeholder.com/40x40?text=FBKI"
-            alt="Logo"
-            className="h-8 w-8 mr-2"
+            src="/lovable-uploads/71435d9d-518a-4191-b618-373eeaa8782d.png"
+            alt="FBKI Logo"
+            className="h-10 w-10 mr-2 rounded-full object-cover"
           />
           FBKI Exames
         </Link>
