@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Student } from './StudentCard';
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +31,15 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
   description
 }) => {
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
+
+  // Initialize scores with 10 if not set yet
+  useEffect(() => {
+    students.forEach(student => {
+      if (scores[student.id] === undefined) {
+        onScoreChange(student.id, 10);
+      }
+    });
+  }, [students, scores, onScoreChange]);
 
   const toggleExpanded = (studentId: number) => {
     setExpandedStudentId(expandedStudentId === studentId ? null : studentId);
@@ -66,7 +75,7 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
         <p className="text-muted-foreground">{description}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {students.map((student) => (
           <Card 
             key={student.id} 
@@ -75,49 +84,46 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
               expandedStudentId === student.id ? "ring-2 ring-primary" : "hover:border-primary/50"
             )}
           >
-            <div className="p-4 flex flex-col sm:flex-row items-center gap-4 cursor-pointer" onClick={() => toggleExpanded(student.id)}>
-              <div className="w-16 flex-shrink-0">
+            <div className="p-3 flex flex-row items-center gap-2 cursor-pointer" onClick={() => toggleExpanded(student.id)}>
+              <div className="w-8 flex-shrink-0">
                 <BeltDisplay 
                   belt={student.belt} 
                   danStage={student.danStage} 
-                  className="w-full mb-2"
+                  className="w-full"
                 />
               </div>
               
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium truncate text-center sm:text-left">{student.name}</h3>
-                <div className="flex items-center justify-center sm:justify-start gap-1 text-xs text-muted-foreground">
-                  <div className={`w-2 h-2 rounded-full ${getBeltColorClass(student.belt)}`} />
+                <h3 className="font-medium text-sm truncate">{student.name}</h3>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <span>{student.belt}</span>
                   <ArrowRight className="w-3 h-3 mx-0.5" />
-                  <div className={`w-2 h-2 rounded-full ${getBeltColorClass(student.targetBelt)}`} />
                   <span>{student.targetBelt}</span>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">{scores[student.id] || 0}</span>
-                <span className="text-xs text-muted-foreground">{renderScoreRating(scores[student.id] || 0)}</span>
-                {scores[student.id] >= 6 ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+              <div className="flex items-center gap-1">
+                <span className="text-base font-semibold">{scores[student.id] || 10}</span>
+                {(scores[student.id] || 10) >= 6 ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
                 ) : (
-                  <XCircle className="w-5 h-5 text-red-500" />
+                  <XCircle className="w-4 h-4 text-red-500" />
                 )}
               </div>
             </div>
             
             {expandedStudentId === student.id && (
-              <CardContent className="border-t bg-muted/30 p-4">
-                <div className="space-y-4">
+              <CardContent className="border-t bg-muted/30 p-3">
+                <div className="space-y-3">
                   <div>
-                    <div className="flex justify-between mb-2">
-                      <Label>Pontuação: {scores[student.id] || 0}</Label>
-                      <span className="text-sm font-medium">
-                        {renderScoreRating(scores[student.id] || 0)}
+                    <div className="flex justify-between mb-1">
+                      <Label className="text-xs">Pontuação: {scores[student.id] || 10}</Label>
+                      <span className="text-xs font-medium">
+                        {renderScoreRating(scores[student.id] || 10)}
                       </span>
                     </div>
                     <Slider
-                      value={[scores[student.id] || 0]}
+                      value={[scores[student.id] || 10]}
                       min={0}
                       max={10}
                       step={0.5}
@@ -125,14 +131,14 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor={`notes-${student.id}`}>Observações</Label>
+                  <div className="space-y-1">
+                    <Label htmlFor={`notes-${student.id}`} className="text-xs">Observações</Label>
                     <Textarea
                       id={`notes-${student.id}`}
                       placeholder="Adicione observações sobre o desempenho..."
                       value={notes[student.id] || ""}
                       onChange={(e) => onNotesChange(student.id, e.target.value)}
-                      className="min-h-[80px] resize-none"
+                      className="min-h-[60px] resize-none text-xs"
                     />
                   </div>
                 </div>

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,13 +17,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Textarea } from "@/components/ui/textarea";
 import { KihonEvaluation } from "./KihonEvaluation";
 import { KataEvaluation } from "./KataEvaluation";
 import { KumiteEvaluation } from "./KumiteEvaluation";
 import { KnowledgeEvaluation } from "./KnowledgeEvaluation";
 import { ExamResults } from "./ExamResults";
 import { StudentResult } from "./StudentResult";
+import { StudentListPrint } from "./StudentListPrint";
 import { useNavigate } from "react-router-dom";
 import { SynchronizedEvaluation } from "./SynchronizedEvaluation";
 
@@ -35,6 +36,7 @@ export default function KarateExam() {
   const [examLocation, setExamLocation] = useState("");
   const [selectedStudentIndex, setSelectedStudentIndex] = useState<number | null>(null);
   const studentResultRef = useRef<HTMLDivElement>(null);
+  const studentListRef = useRef<HTMLDivElement>(null);
   const [kihonMarks, setKihonMarks] = useState<{[key: number]: {[key: string]: string}}>({});
   const [kumiteMarks, setKumiteMarks] = useState<{[key: number]: {[key: string]: string}}>({});
 
@@ -233,7 +235,7 @@ export default function KarateExam() {
     if (currentIndex >= 0 && currentIndex < tabOrder.length - 1) {
       let nextTab = tabOrder[currentIndex + 1];
       
-      // Skip kumite for yellow belt
+      // Skip kumite for yellow belt examinations
       if (nextTab === "kumite" && students.every(s => s.targetBelt === "Amarela")) {
         nextTab = "knowledge";
       }
@@ -256,10 +258,10 @@ export default function KarateExam() {
     // Check if all evaluations are complete
     const incompleteEvaluations = students.some(student => {
       return (
-        !kihonScores[student.id] ||
-        !kataScores[student.id] ||
-        (student.targetBelt !== "Amarela" && !kumiteScores[student.id]) ||
-        ((student.targetBelt === "Preta" || student.targetBelt === "Dans") && !knowledgeScores[student.id])
+        kihonScores[student.id] === undefined ||
+        kataScores[student.id] === undefined ||
+        (student.targetBelt !== "Amarela" && kumiteScores[student.id] === undefined) ||
+        ((student.targetBelt === "Preta" || student.targetBelt === "Dans") && knowledgeScores[student.id] === undefined)
       );
     });
 
@@ -350,6 +352,44 @@ export default function KarateExam() {
                 <style>
                   body { font-family: Arial, sans-serif; }
                   .print-container { padding: 20px; }
+                </style>
+              </head>
+              <body>
+                <div class="print-container">${printContent}</div>
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+          printWindow.print();
+        } else {
+          toast({
+            title: "Erro ao imprimir",
+            description: "Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-ups está desativado.",
+            variant: "destructive"
+          });
+        }
+      }
+    }, 100);
+  };
+
+  const handlePrintList = () => {
+    setTimeout(() => {
+      if (studentListRef.current) {
+        const printContent = studentListRef.current.innerHTML;
+        
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>Lista de Exame - ${examLocation} - ${examDate ? format(examDate, 'dd/MM/yyyy') : ''}</title>
+                <style>
+                  body { font-family: Arial, sans-serif; }
+                  .print-container { padding: 20px; }
+                  table { width: 100%; border-collapse: collapse; }
+                  th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
+                  th { font-weight: bold; background-color: #f3f4f6; }
                 </style>
               </head>
               <body>
@@ -514,6 +554,9 @@ export default function KarateExam() {
     show: { opacity: 1, y: 0 }
   };
 
+  // Determine whether to show kumite for a specific tab
+  const shouldShowKumite = !students.every(s => s.targetBelt === "Amarela");
+
   return (
     <div className="max-w-7xl mx-auto p-6 sm:p-8">
       <motion.div 
@@ -550,7 +593,7 @@ export default function KarateExam() {
             disabled={
               activeTab === "students" || 
               activeTab === "results" || 
-              students.every(s => s.targetBelt === "Amarela")
+              !shouldShowKumite
             }
           >
             <Swords className="mr-2 h-4 w-4" />
@@ -632,7 +675,7 @@ export default function KarateExam() {
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             {students.map((student, index) => (
               <motion.div key={student.id} variants={item} className="relative group">
@@ -673,31 +716,21 @@ export default function KarateExam() {
         </TabsContent>
 
         <TabsContent value="kihon">
-          <div className="space-y-6">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold">Avaliação de Kihon</h2>
-              <p className="text-muted-foreground">
-                Avalie a técnica básica, postura e execução dos movimentos fundamentais.
-              </p>
-            </div>
-            
-            <div className="space-y-6">
-              {students.map(student => (
-                <KihonEvaluation
-                  key={student.id}
-                  student={student}
-                  score={kihonScores[student.id] || 10}
-                  notes={examinerNotes[student.id] || ""}
-                  onScoreChange={handleKihonScoreChange}
-                  onNotesChange={handleNotesChange}
-                  examinerName={kihonExaminers[student.id] || ""}
-                  onExaminerNameChange={handleKihonExaminerChange}
-                />
-              ))}
-            </div>
-          </div>
+          <SynchronizedEvaluation
+            students={students}
+            evaluationType="kihon"
+            scores={kihonScores}
+            notes={examinerNotes}
+            onScoreChange={handleKihonScoreChange}
+            onNotesChange={handleNotesChange}
+            title="Avaliação de Kihon"
+            description="Avalie a técnica básica, postura e execução dos movimentos fundamentais."
+          />
           
-          <div className="flex justify-end mt-8">
+          <div className="flex justify-between mt-8">
+            <Button variant="outline" onClick={() => setActiveTab("students")}>
+              Voltar
+            </Button>
             <Button onClick={() => navigateToNextTab("kihon")}>
               Próxima Etapa
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -714,12 +747,12 @@ export default function KarateExam() {
               </p>
             </div>
             
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {students.map(student => (
                 <KataEvaluation
                   key={student.id}
                   student={student}
-                  score={kataScores[student.id] || 0}
+                  score={kataScores[student.id] || 10}
                   notes={examinerNotes[student.id] || ""}
                   onScoreChange={handleKataScoreChange}
                   onNotesChange={handleNotesChange}
@@ -730,7 +763,10 @@ export default function KarateExam() {
             </div>
           </div>
           
-          <div className="flex justify-end mt-8">
+          <div className="flex justify-between mt-8">
+            <Button variant="outline" onClick={() => setActiveTab("kihon")}>
+              Voltar
+            </Button>
             <Button onClick={() => navigateToNextTab("kata")}>
               Próxima Etapa
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -747,7 +783,7 @@ export default function KarateExam() {
               </p>
             </div>
             
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {students
                 .filter(student => student.targetBelt !== "Amarela")
                 .map(student => (
@@ -765,7 +801,10 @@ export default function KarateExam() {
             </div>
           </div>
           
-          <div className="flex justify-end mt-8">
+          <div className="flex justify-between mt-8">
+            <Button variant="outline" onClick={() => setActiveTab("kata")}>
+              Voltar
+            </Button>
             <Button onClick={() => navigateToNextTab("kumite")}>
               Próxima Etapa
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -782,12 +821,12 @@ export default function KarateExam() {
               </p>
             </div>
             
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {students.filter(requiresKnowledgeTest).map(student => (
                 <KnowledgeEvaluation
                   key={student.id}
                   student={student}
-                  score={knowledgeScores[student.id] || 0}
+                  score={knowledgeScores[student.id] || 10}
                   notes={examinerNotes[student.id] || ""}
                   onScoreChange={handleKnowledgeScoreChange}
                   onNotesChange={handleNotesChange}
@@ -798,7 +837,16 @@ export default function KarateExam() {
             </div>
           </div>
           
-          <div className="flex justify-end mt-8">
+          <div className="flex justify-between mt-8">
+            <Button variant="outline" onClick={() => {
+              if (shouldShowKumite) {
+                setActiveTab("kumite");
+              } else {
+                setActiveTab("kata");
+              }
+            }}>
+              Voltar
+            </Button>
             <Button onClick={handleSubmit}>
               Finalizar Avaliação
               <CheckCircle className="ml-2 h-4 w-4" />
@@ -819,6 +867,7 @@ export default function KarateExam() {
             onPrint={handlePrintStudent}
             onShare={handleShare}
             onDownload={handleDownload}
+            onPrintList={handlePrintList}
           />
           
           <div className="flex justify-center gap-4 mt-10">
@@ -859,6 +908,19 @@ export default function KarateExam() {
             />
           </div>
         )}
+
+        {/* Hidden component for printing student list */}
+        <div ref={studentListRef}>
+          <StudentListPrint
+            students={students}
+            examDate={examDate}
+            examLocation={examLocation}
+            kihonScores={kihonScores}
+            kataScores={kataScores}
+            kumiteScores={kumiteScores}
+            knowledgeScores={knowledgeScores}
+          />
+        </div>
       </div>
     </div>
   );

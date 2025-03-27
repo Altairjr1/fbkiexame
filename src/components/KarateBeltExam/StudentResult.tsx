@@ -44,11 +44,16 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
 }, ref) => {
   // Calculate average score and determine if passed
   const calculateResults = () => {
-    const scores = [
-      kihonScore || 0,
-      kataScore || 0,
-      kumiteScore || 0
-    ];
+    const scores = [];
+    
+    // Always include kihon and kata scores
+    scores.push(kihonScore || 0);
+    scores.push(kataScore || 0);
+    
+    // Only include kumite score for non-yellow belt candidates
+    if (student.targetBelt !== "Amarela") {
+      scores.push(kumiteScore || 0);
+    }
     
     // Only include knowledge score for black belt or dan candidates
     if (student.targetBelt === "Preta" || student.targetBelt === "Dans") {
@@ -178,11 +183,13 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
               <div className="text-xs text-muted-foreground mt-1">Avaliado por: {kataExaminer || "Não informado"}</div>
             </div>
             
-            <div className="bg-muted rounded-lg p-3 text-center">
-              <div className="text-sm font-medium">Kumitê</div>
-              <div className="text-xl font-bold mt-1">{kumiteScore || 0}</div>
-              <div className="text-xs text-muted-foreground mt-1">Avaliado por: {kumiteExaminer || "Não informado"}</div>
-            </div>
+            {student.targetBelt !== "Amarela" && (
+              <div className="bg-muted rounded-lg p-3 text-center">
+                <div className="text-sm font-medium">Kumitê</div>
+                <div className="text-xl font-bold mt-1">{kumiteScore || 0}</div>
+                <div className="text-xs text-muted-foreground mt-1">Avaliado por: {kumiteExaminer || "Não informado"}</div>
+              </div>
+            )}
             
             {(student.targetBelt === "Preta" || student.targetBelt === "Dans") && (
               <div className="bg-muted rounded-lg p-3 text-center">
