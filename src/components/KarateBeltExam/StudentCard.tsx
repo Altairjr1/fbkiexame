@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ interface StudentCardProps {
   index: number;
   onChange: (id: number, field: keyof Student, value: string) => void;
   belts: string[];
+  targetBeltOptions?: string[]; // Added this prop to the interface
 }
 
 const getBeltColorClass = (belt: string) => {
@@ -37,7 +39,7 @@ const getBeltColorClass = (belt: string) => {
   }
 };
 
-export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChange, belts }) => {
+export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChange, belts, targetBeltOptions }) => {
   const animationDelay = `${index * 0.1}s`;
   const currentBeltClass = getBeltColorClass(student.belt);
   const targetBeltClass = getBeltColorClass(student.targetBelt);
@@ -61,8 +63,8 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
     return [beltOrder[currentIndex + 1]];
   };
 
-  // Get available target belts
-  const availableTargetBelts = student.belt ? getNextBelts(student.belt) : [];
+  // Use provided target belt options if available, otherwise calculate them
+  const availableTargetBelts = targetBeltOptions || (student.belt ? getNextBelts(student.belt) : []);
 
   return (
     <Card 
