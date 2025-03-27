@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from 'lucide-react';
 import BeltDisplay from './BeltDisplay';
 import { format } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface StudentResultProps {
   student: Student;
@@ -20,6 +21,8 @@ interface StudentResultProps {
   kataExaminer: string;
   kumiteExaminer: string;
   knowledgeExaminer: string;
+  kihonMarks?: {[key: string]: string};
+  kumiteMarks?: {[key: string]: string};
   ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -35,7 +38,9 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
   kihonExaminer,
   kataExaminer,
   kumiteExaminer,
-  knowledgeExaminer
+  knowledgeExaminer,
+  kihonMarks = {},
+  kumiteMarks = {}
 }, ref) => {
   // Calculate average score and determine if passed
   const calculateResults = () => {
@@ -77,8 +82,35 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
     }
   };
 
+  // Helper to render mark symbols
+  const renderMarkSymbol = (mark: string) => {
+    if (mark === '/') return <Slash className="h-3 w-3 text-amber-600" />;
+    if (mark === 'X') return <XCircle className="h-3 w-3 text-orange-600" />;
+    if (mark === '*') return <span className="text-sm font-bold text-red-600">*</span>;
+    return null;
+  };
+
+  // Criteria groups for Kihon
+  const kihonCriteriaGroups = [
+    {
+      name: "Bases",
+      criteria: ["ZENKUTSO DACHI", "KOKUTSU DACHI", "KIBA DACHI", "HEIKO DACHI", "HEISOKU DACHI"]
+    },
+    {
+      name: "Movimentos",
+      criteria: ["OI ZUKI", "TETSUI", "AGE UKE", "GEDAN BARAI", "SOTO UKE", "UCHI UKE", "SHUTO UKE", "MAI GUERI KEAGUE", "YOKO GUERI KEAGUE"]
+    },
+    {
+      name: "Gerais",
+      criteria: ["CINTURA", "CONHECIMENTO", "COORDENAÇÃO", "EMBUZEN", "ESCUDO", "ESPIRITO", "FORMA", "KIAI", "KIMÊ", "POSTURA", "RIKIASHI", "RIKITE", "UNIFORME", "VISTA"]
+    }
+  ];
+
+  // Criteria for Kumite
+  const kumiteCriteria = ["ATAQUE", "DEFESA", "CONTRA ATAQUE", "DISTÂNCIA", "ZANCHI", "ESPIRITO", "TEMPO"];
+
   return (
-    <div className="print-container w-full max-w-3xl mx-auto" ref={ref}>
+    <div className="print-container w-full max-w-4xl mx-auto" ref={ref}>
       <Card className={`border-l-4 ${result.passed ? 'border-l-green-500' : 'border-l-red-500'}`}>
         <CardHeader className="bg-muted/30 pb-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -161,8 +193,66 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
             )}
           </div>
           
+          {/* Evaluation Details Section */}
+          <div className="mt-6 space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Avaliação de Kihon</h3>
+              {Object.keys(kihonMarks).length > 0 ? (
+                <div className="space-y-4">
+                  {kihonCriteriaGroups.map((group, index) => (
+                    <div key={index} className="border rounded-md p-3">
+                      <h4 className="text-sm font-semibold mb-2">{group.name}</h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        {group.criteria.map((criterion, i) => {
+                          const key = `${group.name}-${criterion}`;
+                          const mark = kihonMarks[key];
+                          if (!mark) return null;
+                          
+                          return (
+                            <div key={i} className="flex items-center space-x-2 text-xs">
+                              <span className="font-medium">{criterion}:</span>
+                              <span>{renderMarkSymbol(mark)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sem detalhes específicos de avaliação disponíveis.</p>
+              )}
+            </div>
+          
+            {/* Kumite Evaluation Details - if applicable */}
+            {student.targetBelt !== "Amarela" && (
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Avaliação de Kumitê</h3>
+                {Object.keys(kumiteMarks).length > 0 ? (
+                  <div className="border rounded-md p-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      {kumiteCriteria.map((criterion, i) => {
+                        const mark = kumiteMarks[criterion];
+                        if (!mark) return null;
+                        
+                        return (
+                          <div key={i} className="flex items-center space-x-2 text-xs">
+                            <span className="font-medium">{criterion}:</span>
+                            <span>{renderMarkSymbol(mark)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Sem detalhes específicos de avaliação disponíveis.</p>
+                )}
+              </div>
+            )}
+          </div>
+          
           {notes && (
-            <div className="mt-4 border-t pt-4">
+            <div className="mt-6 border-t pt-4">
               <h4 className="font-medium mb-2">Observações:</h4>
               <p className="text-muted-foreground text-sm">{notes}</p>
             </div>
@@ -178,3 +268,21 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
 });
 
 StudentResult.displayName = "StudentResult";
+
+// Add this component to make it available in the imports
+export const Slash = (props: any) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <path d="M22 3L2 21"/>
+  </svg>
+);

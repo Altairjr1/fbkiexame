@@ -58,9 +58,9 @@ export const KataEvaluation: React.FC<KataEvaluationProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden border">
-      <CardHeader className="flex flex-row items-center gap-4 bg-muted/50">
-        <div className="w-14 flex-shrink-0">
+    <Card className="overflow-hidden border shadow-sm">
+      <CardHeader className="flex flex-row items-center gap-2 bg-muted/50 py-3 px-4">
+        <div className="w-10 flex-shrink-0">
           <BeltDisplay 
             belt={student.targetBelt} 
             danStage={student.danStage} 
@@ -69,55 +69,56 @@ export const KataEvaluation: React.FC<KataEvaluationProps> = ({
         </div>
         
         <div className="flex-grow">
-          <CardTitle className="text-xl">{student.name}</CardTitle>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className={`w-3 h-3 rounded-full ${getBeltColorClass(student.belt)}`} />
+          <CardTitle className="text-base">{student.name}</CardTitle>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className={`w-2 h-2 rounded-full ${getBeltColorClass(student.belt)}`} />
             <span>{student.belt}</span>
             <span className="mx-1">→</span>
-            <div className={`w-3 h-3 rounded-full ${getBeltColorClass(student.targetBelt)}`} />
+            <div className={`w-2 h-2 rounded-full ${getBeltColorClass(student.targetBelt)}`} />
             <span>{student.targetBelt}</span>
-            <Badge className="ml-2">{student.club}</Badge>
+            <Badge className="ml-1 text-[10px] py-0 px-1 h-4">{student.club}</Badge>
           </div>
         </div>
         
         <div className="flex flex-col items-end">
-          <div className="text-3xl font-bold">{score}</div>
-          <div className="text-sm text-muted-foreground">{getScoreRating(score)}</div>
+          <div className="text-xl font-bold">{score}</div>
+          <div className="text-xs text-muted-foreground">{getScoreRating(score)}</div>
         </div>
       </CardHeader>
       
-      <CardContent className="p-4">
-        <div className="space-y-4">
+      <CardContent className="p-3">
+        <div className="space-y-3">
           <div>
-            <Label htmlFor={`examiner-${student.id}`}>Nome do Examinador</Label>
+            <Label htmlFor={`examiner-${student.id}`} className="text-sm">Nome do Examinador*</Label>
             <Input 
               id={`examiner-${student.id}`}
               value={examinerName}
               onChange={(e) => onExaminerNameChange(student.id, e.target.value)}
               placeholder="Nome do examinador de Kata"
-              className="mt-1"
+              className="mt-1 text-sm"
+              required
             />
           </div>
 
           <div>
-            <Label htmlFor={`kata-name-${student.id}`}>Nome do Kata Executado</Label>
+            <Label htmlFor={`kata-name-${student.id}`} className="text-sm">Nome do Kata Executado</Label>
             <Input 
               id={`kata-name-${student.id}`}
               value={kataName}
               onChange={(e) => setKataName(e.target.value)}
               placeholder="Nome do kata executado"
-              className="mt-1"
+              className="mt-1 text-sm"
             />
           </div>
           
           <div>
-            <div className="flex justify-between mb-2">
-              <Label>Pontuação: {score}</Label>
-              <span className="text-sm font-medium">
+            <div className="flex justify-between mb-1">
+              <Label className="text-sm">Pontuação: {score}</Label>
+              <span className="text-xs font-medium">
                 {getScoreRating(score)}
               </span>
             </div>
-            <div className="py-4">
+            <div className="py-2">
               <Slider
                 value={[score]}
                 min={0}
@@ -126,7 +127,7 @@ export const KataEvaluation: React.FC<KataEvaluationProps> = ({
                 onValueChange={(value) => onScoreChange(student.id, Number(value[0].toFixed(1)))}
               />
             </div>
-            <div className="grid grid-cols-7 text-xs text-center mt-1">
+            <div className="grid grid-cols-7 text-[9px] text-center mt-1">
               <div>Péssimo<br/>(0-4.9)</div>
               <div>Ruim<br/>(5.0-5.9)</div>
               <div>Regular<br/>(6.0-6.9)</div>
@@ -137,14 +138,14 @@ export const KataEvaluation: React.FC<KataEvaluationProps> = ({
             </div>
           </div>
           
-          <div className="space-y-2 mt-4">
-            <Label htmlFor={`notes-${student.id}`}>Observações</Label>
+          <div className="space-y-1 mt-2">
+            <Label htmlFor={`notes-${student.id}`} className="text-sm">Observações</Label>
             <Textarea
               id={`notes-${student.id}`}
               value={notes}
               onChange={(e) => onNotesChange(student.id, e.target.value)}
               placeholder="Adicione observações sobre o desempenho..."
-              className="min-h-[100px] resize-none"
+              className="min-h-[80px] resize-none text-sm"
             />
           </div>
         </div>

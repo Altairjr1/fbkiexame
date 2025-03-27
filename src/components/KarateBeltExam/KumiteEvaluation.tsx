@@ -47,6 +47,13 @@ export const KumiteEvaluation: React.FC<KumiteEvaluationProps> = ({
     return Math.max(0, Number(totalScore.toFixed(1)));
   };
   
+  // Make sure we initialize with score 10 if not set yet
+  React.useEffect(() => {
+    if (score === 0 && Object.keys(criteriaMarks).length === 0) {
+      onScoreChange(student.id, 10);
+    }
+  }, [score, criteriaMarks, student.id, onScoreChange]);
+  
   // Handle mark updates
   const handleMarkChange = (criteriaKey: string, mark: string) => {
     const updatedMarks = { 
@@ -76,9 +83,9 @@ export const KumiteEvaluation: React.FC<KumiteEvaluationProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden border">
-      <CardHeader className="flex flex-row items-center gap-4 bg-muted/50">
-        <div className="w-14 flex-shrink-0">
+    <Card className="overflow-hidden border shadow-sm">
+      <CardHeader className="flex flex-row items-center gap-2 bg-muted/50 py-3 px-4">
+        <div className="w-10 flex-shrink-0">
           <BeltDisplay 
             belt={student.targetBelt} 
             danStage={student.danStage} 
@@ -87,95 +94,96 @@ export const KumiteEvaluation: React.FC<KumiteEvaluationProps> = ({
         </div>
         
         <div className="flex-grow">
-          <CardTitle className="text-xl">{student.name}</CardTitle>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className={`w-3 h-3 rounded-full ${getBeltColorClass(student.belt)}`} />
+          <CardTitle className="text-base">{student.name}</CardTitle>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className={`w-2 h-2 rounded-full ${getBeltColorClass(student.belt)}`} />
             <span>{student.belt}</span>
             <span className="mx-1">→</span>
-            <div className={`w-3 h-3 rounded-full ${getBeltColorClass(student.targetBelt)}`} />
+            <div className={`w-2 h-2 rounded-full ${getBeltColorClass(student.targetBelt)}`} />
             <span>{student.targetBelt}</span>
-            <Badge className="ml-2">{student.club}</Badge>
+            <Badge className="ml-1 text-[10px] py-0 px-1 h-4">{student.club}</Badge>
           </div>
         </div>
         
         <div className="flex flex-col items-end">
-          <div className="text-3xl font-bold">{score}</div>
-          <div className="text-sm text-muted-foreground">Pontuação atual</div>
+          <div className="text-xl font-bold">{score}</div>
+          <div className="text-xs text-muted-foreground">Pontuação</div>
         </div>
       </CardHeader>
       
-      <CardContent className="p-4">
-        <div className="mb-4">
-          <Label htmlFor={`examiner-${student.id}`}>Nome do Examinador</Label>
+      <CardContent className="p-3">
+        <div className="mb-3">
+          <Label htmlFor={`examiner-${student.id}`} className="text-sm">Nome do Examinador*</Label>
           <Input 
             id={`examiner-${student.id}`}
             value={examinerName}
             onChange={(e) => onExaminerNameChange(student.id, e.target.value)}
             placeholder="Nome do examinador de Kumitê"
-            className="mt-1"
+            className="mt-1 text-sm"
+            required
           />
         </div>
         
-        <div className="mb-6">
-          <h4 className="font-semibold mb-2">Critérios de Kumitê</h4>
+        <div className="mb-4">
+          <h4 className="font-semibold text-sm mb-1">Critérios de Kumitê</h4>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[250px]">Critério</TableHead>
-                <TableHead className="w-[80px] text-center">/ (-0.2)</TableHead>
-                <TableHead className="w-[80px] text-center">X (-0.4)</TableHead>
-                <TableHead className="w-[80px] text-center">* (-0.5)</TableHead>
+                <TableHead className="w-[200px] py-2 text-xs">Critério</TableHead>
+                <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
+                <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
+                <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {kumiteCriteria.map((criterion, i) => {
                 return (
                   <TableRow key={i}>
-                    <TableCell className="font-medium">{criterion}</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
+                    <TableCell className="text-center py-1">
                       <button
                         onClick={() => handleMarkChange(criterion, '/')}
                         className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                          "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
                           criteriaMarks[criterion] === '/' 
                             ? "bg-amber-100 text-amber-700" 
                             : "hover:bg-muted"
                         )}
                       >
                         <Slash className={cn(
-                          "h-4 w-4",
+                          "h-3.5 w-3.5",
                           criteriaMarks[criterion] === '/' ? "opacity-100" : "opacity-40"
                         )} />
                       </button>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1">
                       <button
                         onClick={() => handleMarkChange(criterion, 'X')}
                         className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                          "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
                           criteriaMarks[criterion] === 'X' 
                             ? "bg-orange-100 text-orange-700" 
                             : "hover:bg-muted"
                         )}
                       >
                         <XCircle className={cn(
-                          "h-4 w-4",
+                          "h-3.5 w-3.5",
                           criteriaMarks[criterion] === 'X' ? "opacity-100" : "opacity-40"
                         )} />
                       </button>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center py-1">
                       <button
                         onClick={() => handleMarkChange(criterion, '*')}
                         className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                          "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
                           criteriaMarks[criterion] === '*' 
                             ? "bg-red-100 text-red-700" 
                             : "hover:bg-muted"
                         )}
                       >
                         <span className={cn(
-                          "text-lg font-bold",
+                          "text-base font-bold",
                           criteriaMarks[criterion] === '*' ? "opacity-100" : "opacity-40"
                         )}>*</span>
                       </button>
@@ -187,14 +195,14 @@ export const KumiteEvaluation: React.FC<KumiteEvaluationProps> = ({
           </Table>
         </div>
         
-        <div className="space-y-2 mt-4">
-          <Label htmlFor={`notes-${student.id}`}>Observações</Label>
+        <div className="space-y-1 mt-3">
+          <Label htmlFor={`notes-${student.id}`} className="text-sm">Observações</Label>
           <Textarea
             id={`notes-${student.id}`}
             value={notes}
             onChange={(e) => onNotesChange(student.id, e.target.value)}
             placeholder="Adicione observações sobre o desempenho..."
-            className="min-h-[100px] resize-none"
+            className="min-h-[80px] resize-none text-sm"
           />
         </div>
       </CardContent>
