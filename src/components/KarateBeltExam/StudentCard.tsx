@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,8 @@ export interface Student {
   belt: string; // Current belt
   targetBelt: string; // Target belt (new field)
   danStage: string;
+  practiceTime?: string; // Added for "Tempo de Prática"
+  graduations?: string; // Added for graduation count
 }
 
 interface StudentCardProps {
@@ -23,7 +24,7 @@ interface StudentCardProps {
   index: number;
   onChange: (id: number, field: keyof Student, value: string) => void;
   belts: string[];
-  targetBeltOptions?: string[]; // Added this prop to the interface
+  targetBeltOptions?: string[];
 }
 
 const getBeltColorClass = (belt: string) => {
@@ -44,9 +45,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
   const currentBeltClass = getBeltColorClass(student.belt);
   const targetBeltClass = getBeltColorClass(student.targetBelt);
 
-  // Function to determine available target belts based on current belt
   const getNextBelts = (currentBelt: string): string[] => {
-    // Modified belt order - removed Estágio 3
     const beltOrder = ["Branca", "Amarela", "Vermelha", "Laranja", "Verde", "Estágio 1", "Estágio 2", "Roxa", "Marrom", "Preta", "Dans"];
     const currentIndex = beltOrder.indexOf(currentBelt);
     
@@ -54,16 +53,13 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
       return [];
     }
     
-    // Special case for Verde belt
     if (currentBelt === "Verde") {
       return ["Estágio 1", "Estágio 2", "Roxa"];
     }
     
-    // For other belts, return only the next belt in the progression
     return [beltOrder[currentIndex + 1]];
   };
 
-  // Use provided target belt options if available, otherwise calculate them
   const availableTargetBelts = targetBeltOptions || (student.belt ? getNextBelts(student.belt) : []);
 
   return (
@@ -141,7 +137,6 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
                 value={student.belt} 
                 onValueChange={(value) => {
                   onChange(student.id, "belt", value);
-                  // Clear target belt when current belt changes
                   onChange(student.id, "targetBelt", "");
                 }}
               >
@@ -150,7 +145,6 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
                 </SelectTrigger>
                 <SelectContent>
                   {["Branca", ...belts].map((belt) => (
-                    // Skip Estágio 3 in the dropdown
                     belt !== "Estágio 3" && (
                       <SelectItem key={belt} value={belt}>
                         <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Student } from './StudentCard';
 import { Label } from "@/components/ui/label";
@@ -211,7 +212,7 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
           </div>
           <div className="flex items-center space-x-2">
             <Trophy className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs">Graduações: {student.graduations || 0}</span>
+            <span className="text-xs">Graduações: {student.graduations || '0'}</span>
           </div>
         </div>
 
