@@ -14,7 +14,8 @@ const ExamsArchivePage = () => {
   
   const handlePrint = useReactToPrint({
     documentTitle: 'Exame de Faixa - Arquivo',
-    content: () => printRef.current,
+    // The contentRef property is what we want to use, not 'content'
+    contentRef: printRef,
   });
 
   return (
