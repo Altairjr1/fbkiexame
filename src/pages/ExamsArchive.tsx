@@ -14,7 +14,6 @@ const ExamsArchivePage = () => {
   
   const handlePrint = useReactToPrint({
     documentTitle: 'Exame de Faixa - Arquivo',
-    onBeforeGetContent: () => Promise.resolve(),
     content: () => printRef.current,
   });
 
