@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Student } from './StudentCard';
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,8 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import BeltDisplay from "./BeltDisplay";
 import { Input } from "@/components/ui/input";
 import { 
-  CheckCircle2, 
-  XCircle, 
   Slash, 
   Maximize2, 
   Minimize2, 
@@ -20,7 +18,8 @@ import {
   Calendar, 
   Clock, 
   MapPin, 
-  Trophy 
+  Trophy,
+  XCircle
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
