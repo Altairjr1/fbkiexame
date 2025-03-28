@@ -6,9 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import BeltDisplay from "./BeltDisplay";
-import { ArrowRight, CheckCircle2, XCircle, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2, XCircle, Maximize2, Minimize2, Slash } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SynchronizedEvaluationProps {
   students: Student[];
@@ -33,6 +35,8 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
 }) => {
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
   const [fullscreenStudent, setFullscreenStudent] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("criterios");
+  const [criteriaMarks, setCriteriaMarks] = useState<{[key: string]: {[key: string]: string}}>({});
 
   // Initialize scores with 10 if not set yet
   useEffect(() => {
@@ -40,8 +44,16 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
       if (scores[student.id] === undefined) {
         onScoreChange(student.id, 10);
       }
+      
+      // Initialize criteria marks for each student
+      if (!criteriaMarks[student.id]) {
+        setCriteriaMarks(prev => ({
+          ...prev,
+          [student.id]: {}
+        }));
+      }
     });
-  }, [students, scores, onScoreChange]);
+  }, [students, scores, onScoreChange, criteriaMarks]);
 
   const toggleExpanded = (studentId: number) => {
     setExpandedStudentId(expandedStudentId === studentId ? null : studentId);
@@ -75,6 +87,58 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
     return { text: "Excelente", color: "text-green-600" };
   };
 
+  // Handle mark updates
+  const handleMarkChange = (studentId: number, criteriaGroup: string, criterion: string, mark: string) => {
+    const criteriaKey = `${criteriaGroup}-${criterion}`;
+    const currentMarks = criteriaMarks[studentId] || {};
+    
+    const updatedMarks = { 
+      ...currentMarks,
+      [criteriaKey]: currentMarks[criteriaKey] === mark ? '' : mark 
+    };
+    
+    setCriteriaMarks(prev => ({
+      ...prev,
+      [studentId]: updatedMarks
+    }));
+    
+    // Calculate new score based on marks
+    const newScore = calculateScore(updatedMarks);
+    onScoreChange(studentId, newScore);
+  };
+  
+  // Calculate score based on marks
+  const calculateScore = (marks: {[key: string]: string}) => {
+    let totalScore = 10;
+    
+    Object.values(marks).forEach(mark => {
+      if (mark === '/') totalScore -= 0.2;
+      else if (mark === 'X') totalScore -= 0.4;
+      else if (mark === '*') totalScore -= 0.5;
+    });
+    
+    // Ensure score is not negative and round to 1 decimal place
+    return Math.max(0, Number(totalScore.toFixed(1)));
+  };
+
+  // Criteria groups for evaluation
+  const criteriaGroups = {
+    bases: [
+      "ZENKUTSO DACHI", "KOKUTSU DACHI", "KIBA DACHI", "HEIKO DACHI", 
+      "HEISOKU DACHI", "FUDO DACHI", "NEKO ASHI DACHI", "SANCHIN DACHI"
+    ],
+    movimentos: [
+      "OI ZUKI", "GYAKU ZUKI", "URAKEN", "TETSUI", "EMPI", "NUKITE", 
+      "AGE UKE", "GEDAN BARAI", "SOTO UKE", "UCHI UKE", "SHUTO UKE", 
+      "MAI GUERI KEAGUE", "MAI GUERI KEKOMI", "YOKO GUERI KEAGUE", "YOKO GUERI KEKOMI"
+    ],
+    gerais: [
+      "CINTURA", "CONHECIMENTO", "COORDENAÇÃO", "EMBUZEN", "ESCUDO", 
+      "ESPIRITO", "FORMA", "KIAI", "KIMÊ", "POSTURA", "RIKIASHI", 
+      "RIKITE", "UNIFORME", "VISTA", "EQUILÍBRIO"
+    ]
+  };
+
   return (
     <div className="space-y-6">
       <div className="mb-4">
@@ -86,6 +150,7 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
         {students.map((student) => {
           const currentScore = scores[student.id] || 10;
           const scoreRating = renderScoreRating(currentScore);
+          const studentMarks = criteriaMarks[student.id] || {};
           
           return (
             <Card 
@@ -140,35 +205,323 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
               
               {(expandedStudentId === student.id || fullscreenStudent === student.id) && (
                 <CardContent className="border-t bg-muted/30 p-3">
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <Label className="text-xs">Pontuação: {currentScore}</Label>
-                        <span className={`text-xs font-medium ${scoreRating.color}`}>
-                          {scoreRating.text}
-                        </span>
-                      </div>
-                      <Slider
-                        value={[currentScore]}
-                        min={0}
-                        max={10}
-                        step={0.5}
-                        onValueChange={(value) => onScoreChange(student.id, value[0])}
-                        className="mt-1"
-                      />
-                    </div>
+                  <Tabs 
+                    value={activeTab} 
+                    onValueChange={setActiveTab} 
+                    className="w-full"
+                  >
+                    <TabsList className="w-full justify-start mb-3">
+                      <TabsTrigger value="criterios">Critérios de Avaliação</TabsTrigger>
+                      <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>
+                      <TabsTrigger value="observacoes">Observações</TabsTrigger>
+                    </TabsList>
                     
-                    <div className="space-y-1">
-                      <Label htmlFor={`notes-${student.id}`} className="text-xs">Observações</Label>
-                      <Textarea
-                        id={`notes-${student.id}`}
-                        placeholder="Adicione observações sobre o desempenho..."
-                        value={notes[student.id] || ""}
-                        onChange={(e) => onNotesChange(student.id, e.target.value)}
-                        className="min-h-[60px] resize-none text-xs"
-                      />
-                    </div>
-                  </div>
+                    <TabsContent value="criterios" className="space-y-4 mt-0">
+                      <div className="overflow-hidden rounded-md border shadow-sm">
+                        {/* Chrome-style browser window */}
+                        <div className="flex items-center justify-between p-2 bg-[#f1f3f4] border-b">
+                          <div className="flex space-x-1.5">
+                            <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                            <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+                            <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                          </div>
+                          <div className="flex-grow mx-4">
+                            <div className="bg-white rounded-full flex items-center px-3 py-1 text-xs text-gray-600 border shadow-sm">
+                              <span className="truncate">karate-avaliacao.com.br/kihon/{student.name.toLowerCase().replace(/\s/g, '-')}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <Tabs defaultValue="bases" className="w-full">
+                          <TabsList className="w-full justify-start rounded-none border-b bg-white px-2">
+                            <TabsTrigger value="bases" className="data-[state=active]:bg-gray-100 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
+                              Bases
+                            </TabsTrigger>
+                            <TabsTrigger value="movimentos" className="data-[state=active]:bg-gray-100 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
+                              Movimentos
+                            </TabsTrigger>
+                            <TabsTrigger value="gerais" className="data-[state=active]:bg-gray-100 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
+                              Gerais
+                            </TabsTrigger>
+                          </TabsList>
+                          
+                          <div className="p-3 bg-white">
+                            <div className="text-sm mb-2">
+                              <p className="text-muted-foreground">Avalie o estudante. Cada marca reduz a pontuação:</p>
+                              <div className="flex space-x-4 text-xs mt-1">
+                                <span className="flex items-center"><Slash className="h-3 w-3 mr-1 text-amber-600" /> -0.2 pontos (pequeno ajuste)</span>
+                                <span className="flex items-center"><XCircle className="h-3 w-3 mr-1 text-orange-600" /> -0.4 pontos (ajuste necessário)</span>
+                                <span className="flex items-center"><span className="text-base font-bold mr-1 text-red-600">*</span> -0.5 pontos (correção crítica)</span>
+                              </div>
+                            </div>
+                            
+                            <TabsContent value="bases" className="mt-2">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-[200px] py-2 text-xs">Base</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {criteriaGroups.bases.map((criterion, i) => {
+                                    const criteriaKey = `bases-${criterion}`;
+                                    return (
+                                      <TableRow key={i}>
+                                        <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'bases', criterion, '/')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === '/' 
+                                                ? "bg-amber-100 text-amber-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <Slash className={cn(
+                                              "h-3.5 w-3.5",
+                                              studentMarks[criteriaKey] === '/' ? "opacity-100" : "opacity-40"
+                                            )} />
+                                          </button>
+                                        </TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'bases', criterion, 'X')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === 'X' 
+                                                ? "bg-orange-100 text-orange-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <XCircle className={cn(
+                                              "h-3.5 w-3.5",
+                                              studentMarks[criteriaKey] === 'X' ? "opacity-100" : "opacity-40"
+                                            )} />
+                                          </button>
+                                        </TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'bases', criterion, '*')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === '*' 
+                                                ? "bg-red-100 text-red-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <span className={cn(
+                                              "text-base font-bold",
+                                              studentMarks[criteriaKey] === '*' ? "opacity-100" : "opacity-40"
+                                            )}>*</span>
+                                          </button>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </TabsContent>
+                            
+                            <TabsContent value="movimentos" className="mt-2">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-[200px] py-2 text-xs">Movimento</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {criteriaGroups.movimentos.map((criterion, i) => {
+                                    const criteriaKey = `movimentos-${criterion}`;
+                                    return (
+                                      <TableRow key={i}>
+                                        <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'movimentos', criterion, '/')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === '/' 
+                                                ? "bg-amber-100 text-amber-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <Slash className={cn(
+                                              "h-3.5 w-3.5",
+                                              studentMarks[criteriaKey] === '/' ? "opacity-100" : "opacity-40"
+                                            )} />
+                                          </button>
+                                        </TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'movimentos', criterion, 'X')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === 'X' 
+                                                ? "bg-orange-100 text-orange-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <XCircle className={cn(
+                                              "h-3.5 w-3.5",
+                                              studentMarks[criteriaKey] === 'X' ? "opacity-100" : "opacity-40"
+                                            )} />
+                                          </button>
+                                        </TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'movimentos', criterion, '*')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === '*' 
+                                                ? "bg-red-100 text-red-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <span className={cn(
+                                              "text-base font-bold",
+                                              studentMarks[criteriaKey] === '*' ? "opacity-100" : "opacity-40"
+                                            )}>*</span>
+                                          </button>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </TabsContent>
+                            
+                            <TabsContent value="gerais" className="mt-2">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-[200px] py-2 text-xs">Aspecto</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">/ (-0.2)</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">X (-0.4)</TableHead>
+                                    <TableHead className="w-[60px] text-center py-2 text-xs">* (-0.5)</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {criteriaGroups.gerais.map((criterion, i) => {
+                                    const criteriaKey = `gerais-${criterion}`;
+                                    return (
+                                      <TableRow key={i}>
+                                        <TableCell className="font-medium text-xs py-1">{criterion}</TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'gerais', criterion, '/')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === '/' 
+                                                ? "bg-amber-100 text-amber-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <Slash className={cn(
+                                              "h-3.5 w-3.5",
+                                              studentMarks[criteriaKey] === '/' ? "opacity-100" : "opacity-40"
+                                            )} />
+                                          </button>
+                                        </TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'gerais', criterion, 'X')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === 'X' 
+                                                ? "bg-orange-100 text-orange-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <XCircle className={cn(
+                                              "h-3.5 w-3.5",
+                                              studentMarks[criteriaKey] === 'X' ? "opacity-100" : "opacity-40"
+                                            )} />
+                                          </button>
+                                        </TableCell>
+                                        <TableCell className="text-center py-1">
+                                          <button
+                                            onClick={() => handleMarkChange(student.id, 'gerais', criterion, '*')}
+                                            className={cn(
+                                              "w-6 h-6 rounded-full flex items-center justify-center transition-colors",
+                                              studentMarks[criteriaKey] === '*' 
+                                                ? "bg-red-100 text-red-700" 
+                                                : "hover:bg-muted"
+                                            )}
+                                          >
+                                            <span className={cn(
+                                              "text-base font-bold",
+                                              studentMarks[criteriaKey] === '*' ? "opacity-100" : "opacity-40"
+                                            )}>*</span>
+                                          </button>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </TabsContent>
+                          </div>
+                        </Tabs>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="pontuacao" className="mt-0">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <Label className="text-xs">Pontuação: {currentScore}</Label>
+                          <span className={`text-xs font-medium ${scoreRating.color}`}>
+                            {scoreRating.text}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[currentScore]}
+                          min={0}
+                          max={10}
+                          step={0.5}
+                          onValueChange={(value) => onScoreChange(student.id, value[0])}
+                          className="mt-1"
+                        />
+                        
+                        <div className="mt-2 p-3 bg-muted/50 rounded-md text-xs">
+                          <div className="font-medium mb-1">Sistema de Pontuação</div>
+                          <div className="space-y-1">
+                            <div className="flex items-center">
+                              <Slash className="h-3 w-3 mr-2 text-amber-600" />
+                              <span>Pequenos ajustes (-0.2 pontos cada)</span>
+                            </div>
+                            <div className="flex items-center">
+                              <XCircle className="h-3 w-3 mr-2 text-orange-600" />
+                              <span>Ajustes necessários (-0.4 pontos cada)</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-base font-bold mr-2 text-red-600 leading-none">*</span>
+                              <span>Correções críticas (-0.5 pontos cada)</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="observacoes" className="mt-0">
+                      <div className="space-y-1">
+                        <Label htmlFor={`notes-${student.id}`} className="text-xs">Observações</Label>
+                        <Textarea
+                          id={`notes-${student.id}`}
+                          placeholder="Adicione observações sobre o desempenho..."
+                          value={notes[student.id] || ""}
+                          onChange={(e) => onNotesChange(student.id, e.target.value)}
+                          className="min-h-[120px] resize-none text-xs"
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               )}
             </Card>
