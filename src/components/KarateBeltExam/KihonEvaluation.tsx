@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Student } from './StudentCard';
 import { Label } from "@/components/ui/label";
@@ -7,12 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import BeltDisplay from "./BeltDisplay";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, XCircle, Slash, Maximize2, Minimize2, RefreshCw, X, Plus, ExternalLink } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Slash, 
+  Maximize2, 
+  Minimize2, 
+  RefreshCw, 
+  X, 
+  Plus, 
+  ExternalLink, 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  Trophy 
+} from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { motion } from "framer-motion";
 
 interface KihonEvaluationProps {
   student: Student;
@@ -29,7 +41,6 @@ interface CriteriaGroup {
   criteria: string[];
 }
 
-// Criteria based on belt level
 const getCriteriaForBelt = (targetBelt: string): CriteriaGroup[] => {
   const baseCriteria: CriteriaGroup[] = [
     {
@@ -65,7 +76,6 @@ const getCriteriaForBelt = (targetBelt: string): CriteriaGroup[] => {
     }
   ];
 
-  // Add more specific criteria based on belt level
   if (targetBelt === "Preta" || targetBelt === "Dans") {
     baseCriteria[1].criteria.push("URAKEN UCHI", "HAITO UCHI", "HAISHU UCHI");
     baseCriteria[2].criteria.push("ESTRATÉGIA", "RESPIRAÇÃO", "ZANSHIN");
@@ -87,8 +97,7 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
   const criteriaGroups = getCriteriaForBelt(student.targetBelt);
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("bases");
-  
-  // Calculate score based on marks
+
   const calculateScore = (marks: {[key: string]: string}) => {
     let totalScore = 10;
     
@@ -98,18 +107,15 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
       else if (mark === '*') totalScore -= 0.5;
     });
     
-    // Ensure score is not negative and round to 1 decimal place
     return Math.max(0, Number(totalScore.toFixed(1)));
   };
-  
-  // Make sure we initialize with score 10 if not set yet
+
   React.useEffect(() => {
     if (score === 0 && Object.keys(criteriaMarks).length === 0) {
       onScoreChange(student.id, 10);
     }
   }, [score, criteriaMarks, student.id, onScoreChange]);
-  
-  // Handle mark updates
+
   const handleMarkChange = (criteriaKey: string, mark: string) => {
     const updatedMarks = { 
       ...criteriaMarks,
@@ -148,8 +154,6 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
     return { text: "Excelente", color: "text-green-600" };
   };
 
-  const scoreRating = renderScoreRating(score);
-
   return (
     <Card className={cn("overflow-hidden border shadow-sm transition-all duration-300", 
       expanded ? "fixed inset-4 z-50 m-4 max-w-none overflow-auto" : "")}>
@@ -176,7 +180,9 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
         
         <div className="flex flex-col items-end">
           <div className="text-xl font-bold">{score}</div>
-          <div className={`text-xs ${scoreRating.color}`}>{scoreRating.text}</div>
+          <div className={`text-xs ${renderScoreRating(score).color}`}>
+            {renderScoreRating(score).text}
+          </div>
         </div>
         
         <Button 
@@ -190,6 +196,25 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
       </CardHeader>
       
       <CardContent className={cn("p-3", expanded ? "pb-20" : "")}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 bg-muted/30 p-3 rounded-md">
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs">Idade: {student.age || 'N/A'}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs">Tempo de Prática: {student.practiceTime || 'N/A'}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs">Dojo: {student.club}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Trophy className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs">Graduações: {student.graduations || 0}</span>
+          </div>
+        </div>
+
         <div className="mb-3">
           <Label htmlFor={`examiner-${student.id}`} className="text-sm">Nome do Examinador*</Label>
           <Input 
@@ -203,7 +228,6 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
         </div>
         
         <div className="mb-4 overflow-hidden rounded-md border shadow-sm">
-          {/* Chrome-style browser window */}
           <div className="flex items-center justify-between p-2 bg-[#f1f3f4] border-b">
             <div className="flex space-x-1.5">
               <div className="h-3 w-3 rounded-full bg-red-500"></div>
@@ -486,10 +510,12 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
             value={notes}
             onChange={(e) => onNotesChange(student.id, e.target.value)}
             placeholder="Adicione observações sobre o desempenho..."
-            className="min-h-[80px] resize-none text-sm"
+            className="min-h-[120px] resize-none text-sm"
           />
         </div>
       </CardContent>
     </Card>
   );
 };
+
+export default KihonEvaluation;
