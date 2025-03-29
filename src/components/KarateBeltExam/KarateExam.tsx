@@ -25,6 +25,7 @@ import { StudentResult } from "./StudentResult";
 import { StudentListPrint } from "./StudentListPrint";
 import { useNavigate } from "react-router-dom";
 import { SynchronizedEvaluation } from "./SynchronizedEvaluation";
+import { supabase } from '@/integrations/supabase/client';
 
 export default function KarateExam() {
   const { toast } = useToast();
@@ -425,35 +426,101 @@ export default function KarateExam() {
     // In a real implementation, this would generate and download a PDF
   };
 
-  const handleSave = () => {
-    const examInfo = {
-      date: examDate ? format(examDate, 'dd-MM-yyyy') : 'sem-data',
-      location: examLocation.replace(/\s+/g, '-').toLowerCase() || 'sem-local',
-      students: students.map(s => ({
-        ...s,
-        kihon: kihonScores[s.id] || 0,
-        kata: kataScores[s.id] || 0,
-        kumite: kumiteScores[s.id] || 0,
-        knowledge: knowledgeScores[s.id] || 0,
-        notes: examinerNotes[s.id] || "",
-        kihonExaminer: kihonExaminers[s.id] || "",
-        kataExaminer: kataExaminers[s.id] || "",
-        kumiteExaminer: kumiteExaminers[s.id] || "",
-        knowledgeExaminer: knowledgeExaminers[s.id] || ""
-      }))
-    };
-    
-    // Save to localStorage
-    const storageKey = `exam-${examInfo.date}-${examInfo.location}`;
-    localStorage.setItem(storageKey, JSON.stringify(examInfo));
-    
-    toast({
-      title: "Exame salvo",
-      description: "O registro do exame foi salvo com sucesso!"
-    });
-    
-    // Navigate to archive page
-    navigate("/archive");
+  const handleSave = async () => {
+    try {
+      // Format data for saving
+      const examData = {
+        date: examDate ? format(examDate, 'yyyy-MM-dd') : null,
+        location: examLocation
+      };
+      
+      // Insert exam record and get the id
+      const { data: examResult, error: examError } = await supabase
+        .from('exams')
+        .insert(examData)
+        .select('id')
+        .single();
+      
+      if (examError) throw examError;
+      console.log('Exam saved:', examResult);
+      
+      const examId = examResult.id;
+      
+      // Save all students
+      for (const student of students) {
+        if (!student.name) continue; // Skip empty students
+        
+        // Insert student record
+        const studentData = {
+          name: student.name,
+          age: student.age,
+          club: student.club,
+          special_condition: student.specialCondition,
+          current_belt: student.belt,
+          target_belt: student.targetBelt,
+          dan_stage: student.danStage || null,
+          exam_id: examId
+        };
+        
+        const { data: studentResult, error: studentError } = await supabase
+          .from('students')
+          .insert(studentData)
+          .select('id')
+          .single();
+        
+        if (studentError) {
+          console.error('Error saving student:', studentError);
+          continue;
+        }
+        
+        const studentId = studentResult.id;
+        
+        // Insert scores record for this student
+        const scoreData = {
+          student_id: studentId,
+          kihon: kihonScores[student.id] || null,
+          kata: kataScores[student.id] || null,
+          kumite: kumiteScores[student.id] || null,
+          knowledge: knowledgeScores[student.id] || null,
+          kihon_examiner: kihonExaminers[student.id] || null,
+          kata_examiner: kataExaminers[student.id] || null,
+          kumite_examiner: kumiteExaminers[student.id] || null,
+          knowledge_examiner: knowledgeExaminers[student.id] || null,
+          notes: examinerNotes[student.id] || null
+        };
+        
+        // Add kihonMarks and kumiteMarks to notes as JSON
+        const notesData = {
+          kihonMarks: kihonMarks[student.id] || {},
+          kumiteMarks: kumiteMarks[student.id] || {}
+        };
+        
+        scoreData.notes = JSON.stringify(notesData);
+        
+        const { error: scoreError } = await supabase
+          .from('scores')
+          .insert(scoreData);
+        
+        if (scoreError) {
+          console.error('Error saving scores:', scoreError);
+        }
+      }
+      
+      toast({
+        title: "Exame salvo",
+        description: "O registro do exame foi salvo com sucesso!"
+      });
+      
+      // Navigate to archive page
+      navigate("/archive");
+    } catch (error) {
+      console.error('Error saving exam:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar o exame. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleReset = () => {

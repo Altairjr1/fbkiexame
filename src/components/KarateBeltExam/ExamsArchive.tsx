@@ -186,7 +186,7 @@ export const ExamsArchive = () => {
 
   const handlePrintStudentResult = useReactToPrint({
     documentTitle: 'Resultado Individual - Exame de Faixa',
-    contentRef: studentResultRef,
+    content: () => studentResultRef.current,
     onAfterPrint: () => {
       toast({
         title: "Impressão concluída",
@@ -201,6 +201,7 @@ export const ExamsArchive = () => {
       acc[location] = {};
     }
     acc[location][key] = exam;
+    return acc[location][key] = exam;
     return acc;
   }, {});
 
@@ -450,7 +451,7 @@ export const ExamsArchive = () => {
                                                   <Button 
                                                     size="icon" 
                                                     variant="outline" 
-                                                    onClick={() => handlePrintList()}
+                                                    onClick={() => setTimeout(() => handlePrintList(), 100)}
                                                   >
                                                     <Printer className="h-4 w-4" />
                                                   </Button>
@@ -511,7 +512,7 @@ export const ExamsArchive = () => {
                                                     <Button 
                                                       size="icon" 
                                                       variant="outline"
-                                                      onClick={() => handlePrintList()}
+                                                      onClick={() => setTimeout(() => handlePrintList(), 100)}
                                                     >
                                                       <Printer className="h-4 w-4" />
                                                     </Button>
@@ -572,7 +573,7 @@ export const ExamsArchive = () => {
                                                     <Button 
                                                       size="icon" 
                                                       variant="outline"
-                                                      onClick={() => handlePrintList()}
+                                                      onClick={() => setTimeout(() => handlePrintList(), 100)}
                                                     >
                                                       <Printer className="h-4 w-4" />
                                                     </Button>
@@ -588,7 +589,7 @@ export const ExamsArchive = () => {
                               </Tabs>
 
                               <DialogFooter>
-                                <Button onClick={() => handlePrintList()}>
+                                <Button onClick={() => setTimeout(() => handlePrintList(), 100)}>
                                   <Printer className="h-4 w-4 mr-2" />
                                   Imprimir Lista
                                 </Button>
