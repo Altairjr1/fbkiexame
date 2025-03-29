@@ -1,3 +1,4 @@
+
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
@@ -180,6 +181,23 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
     };
   };
 
+  // Get counts of approved and failed students
+  const getResultsSummary = () => {
+    if (!students.length) return { approved: 0, failed: 0 };
+    
+    return students.reduce((acc, student) => {
+      const result = calculateResults(student);
+      if (result.passed) {
+        acc.approved += 1;
+      } else {
+        acc.failed += 1;
+      }
+      return acc;
+    }, { approved: 0, failed: 0 });
+  };
+
+  const summary = getResultsSummary();
+
   if (loading) {
     return <div>Carregando...</div>;
   }
@@ -192,6 +210,21 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           Local: {examLocation} • 
           Data: {examDate ? format(examDate, 'dd/MM/yyyy') : 'Não definida'}
         </p>
+        
+        {/* Added summary of results */}
+        <div className="flex justify-center items-center mt-3 gap-8">
+          <div className="flex items-center text-green-600">
+            <CheckCircle className="w-4 h-4 mr-1" />
+            <span>Aprovados: {summary.approved}</span>
+          </div>
+          <div className="flex items-center text-red-600">
+            <XCircle className="w-4 h-4 mr-1" />
+            <span>Reprovados: {summary.failed}</span>
+          </div>
+          <div>
+            <span>Total: {students.length}</span>
+          </div>
+        </div>
       </div>
 
       <Table>

@@ -87,11 +87,11 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
     }
   };
 
-  // Helper to render mark symbols
+  // Helper to render mark symbols with more emphasis
   const renderMarkSymbol = (mark: string) => {
-    if (mark === '/') return <Slash className="h-3 w-3 text-amber-600" />;
-    if (mark === 'X') return <XCircle className="h-3 w-3 text-orange-600" />;
-    if (mark === '*') return <span className="text-sm font-bold text-red-600">*</span>;
+    if (mark === '/') return <Slash className="h-4 w-4 text-amber-600" />;
+    if (mark === 'X') return <XCircle className="h-4 w-4 text-orange-600" />;
+    if (mark === '*') return <span className="text-base font-bold text-red-600">*</span>;
     return null;
   };
 
@@ -200,7 +200,7 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
             )}
           </div>
           
-          {/* Evaluation Details Section */}
+          {/* Evaluation Details Section - Now with more emphasis on errors */}
           <div className="mt-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Avaliação de Kihon</h3>
@@ -213,11 +213,32 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
                         const key = `${group.name}-${criterion}`;
                         const mark = kihonMarks[key];
                         
+                        // Return different styled items based on if they have marks
                         return (
-                          <div key={i} className="flex items-center space-x-2 text-xs">
+                          <div 
+                            key={i} 
+                            className={`flex items-center gap-2 text-xs p-1 rounded-md ${
+                              mark ? (
+                                mark === '/' ? 'bg-amber-50' : 
+                                mark === 'X' ? 'bg-orange-50' : 
+                                mark === '*' ? 'bg-red-50' : ''
+                              ) : ''
+                            }`}
+                          >
                             <span className="font-medium">{criterion}:</span>
                             {mark ? (
-                              <span>{renderMarkSymbol(mark)}</span>
+                              <span className="flex items-center">
+                                {renderMarkSymbol(mark)}
+                                <span className={`ml-1 text-xs ${
+                                  mark === '/' ? 'text-amber-700' : 
+                                  mark === 'X' ? 'text-orange-700' : 
+                                  mark === '*' ? 'text-red-700' : ''
+                                }`}>
+                                  {mark === '/' ? 'Pequeno ajuste' : 
+                                   mark === 'X' ? 'Ajuste necessário' : 
+                                   mark === '*' ? 'Correção crítica' : ''}
+                                </span>
+                              </span>
                             ) : (
                               <span className="text-gray-400">-</span>
                             )}
@@ -230,7 +251,7 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
               </div>
             </div>
           
-            {/* Kumite Evaluation Details - if applicable */}
+            {/* Kumite Evaluation Details - if applicable - also with more emphasis */}
             {student.targetBelt !== "Amarela" && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Avaliação de Kumitê</h3>
@@ -240,10 +261,30 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
                       const mark = kumiteMarks[criterion];
                       
                       return (
-                        <div key={i} className="flex items-center space-x-2 text-xs">
+                        <div 
+                          key={i} 
+                          className={`flex items-center gap-2 text-xs p-1 rounded-md ${
+                            mark ? (
+                              mark === '/' ? 'bg-amber-50' : 
+                              mark === 'X' ? 'bg-orange-50' : 
+                              mark === '*' ? 'bg-red-50' : ''
+                            ) : ''
+                          }`}
+                        >
                           <span className="font-medium">{criterion}:</span>
                           {mark ? (
-                            <span>{renderMarkSymbol(mark)}</span>
+                            <span className="flex items-center">
+                              {renderMarkSymbol(mark)}
+                              <span className={`ml-1 text-xs ${
+                                mark === '/' ? 'text-amber-700' : 
+                                mark === 'X' ? 'text-orange-700' : 
+                                mark === '*' ? 'text-red-700' : ''
+                              }`}>
+                                {mark === '/' ? 'Pequeno ajuste' : 
+                                 mark === 'X' ? 'Ajuste necessário' : 
+                                 mark === '*' ? 'Correção crítica' : ''}
+                              </span>
+                            </span>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
