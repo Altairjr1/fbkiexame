@@ -8,9 +8,11 @@ import { useReactToPrint } from 'react-to-print';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useToast } from '@/components/ui/use-toast';
 
 const ExamsArchivePage = () => {
   const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   const handlePrint = useReactToPrint({
     documentTitle: 'Exame de Faixa - Lista de Alunos',
@@ -29,6 +31,10 @@ const ExamsArchivePage = () => {
     `,
     onAfterPrint: () => {
       console.log('Impressão concluída');
+      toast({
+        title: "Impressão concluída",
+        description: "A lista de resultados foi enviada para impressão."
+      });
     }
   });
 
@@ -40,7 +46,7 @@ const ExamsArchivePage = () => {
           <div className="mb-6 flex justify-between items-center">
             <h1 className="text-2xl font-bold">Arquivo de Exames</h1>
             <Button 
-              onClick={() => handlePrint()} 
+              onClick={handlePrint} 
               variant="outline" 
               className="flex items-center gap-2"
             >

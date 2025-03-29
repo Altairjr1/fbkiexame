@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -201,7 +202,6 @@ export const ExamsArchive = () => {
       acc[location] = {};
     }
     acc[location][key] = exam;
-    return acc[location][key] = exam;
     return acc;
   }, {});
 
