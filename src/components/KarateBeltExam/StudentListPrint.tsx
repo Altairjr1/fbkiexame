@@ -1,4 +1,3 @@
-
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
@@ -6,7 +5,7 @@ import { CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Student {
-  id: string;
+  id: number | string;
   name: string;
   age: string;
   club: string;
@@ -16,28 +15,70 @@ interface Student {
 
 export interface StudentListPrintProps {
   examId?: string;
+  students?: Student[];
+  examDate?: Date;
+  examLocation?: string;
+  kihonScores?: {[key: number]: number};
+  kataScores?: {[key: number]: number};
+  kumiteScores?: {[key: number]: number};
+  knowledgeScores?: {[key: number]: number};
 }
 
 export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps>(({
-  examId
+  examId,
+  students: propStudents,
+  examDate: propExamDate,
+  examLocation: propExamLocation,
+  kihonScores: propKihonScores,
+  kataScores: propKataScores,
+  kumiteScores: propKumiteScores,
+  knowledgeScores: propKnowledgeScores
 }, ref) => {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [examDate, setExamDate] = useState<Date | undefined>(undefined);
-  const [examLocation, setExamLocation] = useState('');
+  const [students, setStudents] = useState<Student[]>(propStudents || []);
+  const [examDate, setExamDate] = useState<Date | undefined>(propExamDate);
+  const [examLocation, setExamLocation] = useState(propExamLocation || '');
   const [scores, setScores] = useState<{[key: string]: {
     kihon?: number;
     kata?: number;
     kumite?: number;
     knowledge?: number;
   }}>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propStudents);
 
   useEffect(() => {
+    if (propStudents && propStudents.length > 0) {
+      setStudents(propStudents);
+      setExamDate(propExamDate);
+      setExamLocation(propExamLocation || '');
+      
+      if (propKihonScores || propKataScores || propKumiteScores || propKnowledgeScores) {
+        const newScores: {[key: string]: any} = {};
+        
+        propStudents.forEach(student => {
+          const studentId = student.id.toString();
+          newScores[studentId] = {
+            kihon: propKihonScores?.[Number(student.id)],
+            kata: propKataScores?.[Number(student.id)],
+            kumite: propKumiteScores?.[Number(student.id)],
+            knowledge: propKnowledgeScores?.[Number(student.id)]
+          };
+        });
+        
+        setScores(newScores);
+        setLoading(false);
+        return;
+      }
+    }
+
     const loadExamData = async () => {
+      if (!examId) {
+        setLoading(false);
+        return;
+      }
+      
       try {
         setLoading(true);
         
-        // Carregar todos os exames se não for especificado um ID
         const { data: examsData, error: examsError } = await supabase
           .from('exams')
           .select('*')
@@ -46,13 +87,11 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         
         if (examsError) throw examsError;
         
-        // Se não houver exames, retornar
         if (!examsData || examsData.length === 0) {
           setLoading(false);
           return;
         }
         
-        // Usar o exame especificado ou o primeiro encontrado
         const examToUse = examId 
           ? await supabase.from('exams').select('*').eq('id', examId).single()
               .then(res => res.data)
@@ -63,11 +102,9 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           return;
         }
         
-        // Atualizar dados do exame
         setExamDate(new Date(examToUse.date));
         setExamLocation(examToUse.location);
         
-        // Carregar alunos do exame
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('*')
@@ -75,7 +112,6 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         
         if (studentsError) throw studentsError;
         
-        // Converter para o formato esperado
         const formattedStudents = studentsData.map(student => ({
           id: student.id,
           name: student.name,
@@ -87,7 +123,6 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         
         setStudents(formattedStudents);
         
-        // Carregar pontuações de cada aluno
         const studentsScores: {[key: string]: any} = {};
         
         await Promise.all(studentsData.map(async (student) => {
@@ -116,23 +151,19 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
     };
     
     loadExamData();
-  }, [examId]);
+  }, [examId, propStudents, propExamDate, propExamLocation, propKihonScores, propKataScores, propKumiteScores, propKnowledgeScores]);
 
-  // Calculate average score and determine if passed
   const calculateResults = (student: Student) => {
-    const scoreData = scores[student.id] || {};
+    const scoreData = scores[student.id.toString()] || {};
     const scoreValues = [];
     
-    // Always include kihon and kata
     if (scoreData.kihon !== undefined) scoreValues.push(scoreData.kihon);
     if (scoreData.kata !== undefined) scoreValues.push(scoreData.kata);
     
-    // Only include kumite score for non-yellow belt candidates
     if (student.targetBelt !== "Amarela" && scoreData.kumite !== undefined) {
       scoreValues.push(scoreData.kumite);
     }
     
-    // Only include knowledge score for black belt or dan candidates
     if ((student.targetBelt === "Preta" || student.targetBelt === "Dans") && 
         scoreData.knowledge !== undefined) {
       scoreValues.push(scoreData.knowledge);
