@@ -64,13 +64,11 @@ export const ExamsArchive = () => {
   const studentResultRef = useRef<HTMLDivElement>(null);
   const examListRef = useRef<HTMLDivElement>(null);
 
-  // Carregar exames do Supabase
   useEffect(() => {
     const fetchExams = async () => {
       try {
         setLoading(true);
         
-        // Buscar todos os exames
         const { data: examsData, error: examsError } = await supabase
           .from('exams')
           .select('*');
@@ -79,7 +77,6 @@ export const ExamsArchive = () => {
         
         const loadedExams: {[key: string]: ExamData} = {};
         
-        // Para cada exame, buscar os alunos associados
         await Promise.all(examsData.map(async (exam) => {
           const { data: studentsData, error: studentsError } = await supabase
             .from('students')
@@ -88,7 +85,6 @@ export const ExamsArchive = () => {
           
           if (studentsError) throw studentsError;
           
-          // Para cada aluno, buscar suas pontuações
           const studentsWithScores = await Promise.all(studentsData.map(async (student) => {
             const { data: scoreData, error: scoreError } = await supabase
               .from('scores')
@@ -100,7 +96,6 @@ export const ExamsArchive = () => {
               console.error('Erro ao buscar pontuação:', scoreError);
             }
             
-            // Converter para o formato esperado pelo componente
             return {
               id: student.id,
               name: student.name,
@@ -119,13 +114,11 @@ export const ExamsArchive = () => {
               kataExaminer: scoreData?.kata_examiner,
               kumiteExaminer: scoreData?.kumite_examiner,
               knowledgeExaminer: scoreData?.knowledge_examiner,
-              // Os marcadores serão armazenados como JSON no campo notes para simplicidade
               kihonMarks: scoreData?.notes ? JSON.parse(scoreData.notes).kihonMarks || {} : {},
               kumiteMarks: scoreData?.notes ? JSON.parse(scoreData.notes).kumiteMarks || {} : {}
             };
           }));
           
-          // Adicionar o exame com seus alunos ao objeto de exames
           loadedExams[exam.id] = {
             id: exam.id,
             date: exam.date,
@@ -150,10 +143,8 @@ export const ExamsArchive = () => {
     fetchExams();
   }, [toast]);
 
-  // Handle deletar exame
   const handleDeleteExam = async (examId: string) => {
     try {
-      // Deletar o exame do Supabase
       const { error } = await supabase
         .from('exams')
         .delete()
@@ -161,7 +152,6 @@ export const ExamsArchive = () => {
       
       if (error) throw error;
       
-      // Atualizar o estado
       setExams(prev => {
         const updated = { ...prev };
         delete updated[examId];
@@ -183,10 +173,9 @@ export const ExamsArchive = () => {
     }
   };
 
-  // Imprimir lista de alunos
   const handlePrintList = useReactToPrint({
-    content: () => examListRef.current,
     documentTitle: 'Lista de Alunos - Exame de Faixa',
+    contentRef: examListRef,
     onAfterPrint: () => {
       toast({
         title: "Impressão concluída",
@@ -195,10 +184,9 @@ export const ExamsArchive = () => {
     }
   });
 
-  // Imprimir ficha individual do aluno
   const handlePrintStudentResult = useReactToPrint({
-    content: () => studentResultRef.current,
     documentTitle: 'Resultado Individual - Exame de Faixa',
+    contentRef: studentResultRef,
     onAfterPrint: () => {
       toast({
         title: "Impressão concluída",
@@ -207,7 +195,6 @@ export const ExamsArchive = () => {
     }
   });
 
-  // Group exams by location
   const examsByLocation = Object.entries(exams).reduce((acc: {[key: string]: {[key: string]: ExamData}}, [key, exam]) => {
     const location = exam.location || 'Sem local';
     if (!acc[location]) {
@@ -217,20 +204,16 @@ export const ExamsArchive = () => {
     return acc;
   }, {});
 
-  // Calculate pass/fail count
   const calculateResults = (student: ExamStudent) => {
     const scores = [];
     
-    // Always include kihon and kata
     if (student.kihon !== undefined) scores.push(student.kihon);
     if (student.kata !== undefined) scores.push(student.kata);
     
-    // Only include kumite score for non-yellow belt candidates
     if (student.targetBelt !== "Amarela" && student.kumite !== undefined) {
       scores.push(student.kumite);
     }
     
-    // Only include knowledge score for black belt or dan candidates
     if ((student.targetBelt === "Preta" || student.targetBelt === "Dans") && 
         student.knowledge !== undefined) {
       scores.push(student.knowledge);
@@ -247,7 +230,6 @@ export const ExamsArchive = () => {
     };
   };
 
-  // Filter function for search
   const filterExams = () => {
     if (!searchQuery.trim()) return examsByLocation;
     
@@ -257,11 +239,9 @@ export const ExamsArchive = () => {
       const filteredLocationExams: {[key: string]: ExamData} = {};
       
       Object.entries(locationExams).forEach(([key, exam]) => {
-        // Check if exam date/location matches search
         const dateMatches = exam.date.toLowerCase().includes(searchQuery.toLowerCase());
         const locationMatches = exam.location.toLowerCase().includes(searchQuery.toLowerCase());
         
-        // Check if any student name/club matches search
         const studentMatches = exam.students.some(student => 
           student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           student.club.toLowerCase().includes(searchQuery.toLowerCase())
@@ -282,7 +262,6 @@ export const ExamsArchive = () => {
 
   const filteredExams = filterExams();
 
-  // Formatar data
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "Sem data";
     
@@ -468,7 +447,11 @@ export const ExamsArchive = () => {
                                                   >
                                                     <FileText className="h-4 w-4" />
                                                   </Button>
-                                                  <Button size="icon" variant="outline" onClick={handlePrintList}>
+                                                  <Button 
+                                                    size="icon" 
+                                                    variant="outline" 
+                                                    onClick={() => handlePrintList()}
+                                                  >
                                                     <Printer className="h-4 w-4" />
                                                   </Button>
                                                 </div>
@@ -525,7 +508,11 @@ export const ExamsArchive = () => {
                                                     >
                                                       <FileText className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" variant="outline" onClick={handlePrintList}>
+                                                    <Button 
+                                                      size="icon" 
+                                                      variant="outline"
+                                                      onClick={() => handlePrintList()}
+                                                    >
                                                       <Printer className="h-4 w-4" />
                                                     </Button>
                                                   </div>
@@ -582,7 +569,11 @@ export const ExamsArchive = () => {
                                                     >
                                                       <FileText className="h-4 w-4" />
                                                     </Button>
-                                                    <Button size="icon" variant="outline" onClick={handlePrintList}>
+                                                    <Button 
+                                                      size="icon" 
+                                                      variant="outline"
+                                                      onClick={() => handlePrintList()}
+                                                    >
                                                       <Printer className="h-4 w-4" />
                                                     </Button>
                                                   </div>
@@ -597,7 +588,7 @@ export const ExamsArchive = () => {
                               </Tabs>
 
                               <DialogFooter>
-                                <Button onClick={handlePrintList}>
+                                <Button onClick={() => handlePrintList()}>
                                   <Printer className="h-4 w-4 mr-2" />
                                   Imprimir Lista
                                 </Button>
@@ -657,7 +648,6 @@ export const ExamsArchive = () => {
         </div>
       )}
 
-      {/* Área escondida para impressão da ficha individual */}
       {selectedStudent && (
         <div className="hidden">
           <div ref={studentResultRef}>

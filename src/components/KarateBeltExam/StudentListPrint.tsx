@@ -14,7 +14,7 @@ interface Student {
   danStage?: string;
 }
 
-interface StudentListPrintProps {
+export interface StudentListPrintProps {
   examId?: string;
 }
 

@@ -40,7 +40,7 @@ const ExamsArchivePage = () => {
           <div className="mb-6 flex justify-between items-center">
             <h1 className="text-2xl font-bold">Arquivo de Exames</h1>
             <Button 
-              onClick={handlePrint} 
+              onClick={() => handlePrint()} 
               variant="outline" 
               className="flex items-center gap-2"
             >
