@@ -46,10 +46,10 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
   const targetBeltClass = getBeltColorClass(student.targetBelt);
 
   const getNextBelts = (currentBelt: string): string[] => {
-    const beltOrder = ["Branca", "Amarela", "Vermelha", "Laranja", "Verde", "Estágio 1", "Estágio 2", "Roxa", "Marrom", "Preta", "Dans"];
+    const beltOrder = ["Branca", "Amarela", "Vermelha", "Laranja", "Verde", "Roxa", "Marrom", "Preta", "Dans"];
     const currentIndex = beltOrder.indexOf(currentBelt);
     
-    if (currentIndex === -1 || currentIndex === beltOrder.length - 1) {
+    if (currentIndex === -1) {
       return [];
     }
     
@@ -57,7 +57,23 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, index, onChan
       return ["Estágio 1", "Estágio 2", "Roxa"];
     }
     
-    return [beltOrder[currentIndex + 1]];
+    if (currentBelt === "Preta" || currentBelt === "Dans") {
+      return ["Dans"];
+    }
+    
+    if (currentIndex < beltOrder.length - 1) {
+      const nextBelts = [beltOrder[currentIndex + 1]];
+      
+      if (currentIndex + 2 < beltOrder.length && 
+          beltOrder[currentIndex + 2] !== "Preta" && 
+          beltOrder[currentIndex + 2] !== "Dans") {
+        nextBelts.push(beltOrder[currentIndex + 2]);
+      }
+      
+      return nextBelts;
+    }
+    
+    return [];
   };
 
   const availableTargetBelts = targetBeltOptions || (student.belt ? getNextBelts(student.belt) : []);
