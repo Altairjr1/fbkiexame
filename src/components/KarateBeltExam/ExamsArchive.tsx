@@ -187,7 +187,8 @@ export const ExamsArchive = () => {
 
   const handlePrintStudentResult = useReactToPrint({
     documentTitle: 'Resultado Individual - Exame de Faixa',
-    content: () => studentResultRef.current,
+    // Fix: Use contentRef property instead of content
+    contentRef: studentResultRef,
     onAfterPrint: () => {
       toast({
         title: "Impressão concluída",
