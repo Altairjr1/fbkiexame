@@ -204,56 +204,54 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
           <div className="mt-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Avaliação de Kihon</h3>
-              {Object.keys(kihonMarks).length > 0 ? (
-                <div className="space-y-4">
-                  {kihonCriteriaGroups.map((group, index) => (
-                    <div key={index} className="border rounded-md p-3">
-                      <h4 className="text-sm font-semibold mb-2">{group.name}</h4>
-                      <div className="grid grid-cols-3 gap-2">
-                        {group.criteria.map((criterion, i) => {
-                          const key = `${group.name}-${criterion}`;
-                          const mark = kihonMarks[key];
-                          if (!mark) return null;
-                          
-                          return (
-                            <div key={i} className="flex items-center space-x-2 text-xs">
-                              <span className="font-medium">{criterion}:</span>
+              <div className="space-y-4">
+                {kihonCriteriaGroups.map((group, index) => (
+                  <div key={index} className="border rounded-md p-3">
+                    <h4 className="text-sm font-semibold mb-2">{group.name}</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {group.criteria.map((criterion, i) => {
+                        const key = `${group.name}-${criterion}`;
+                        const mark = kihonMarks[key];
+                        
+                        return (
+                          <div key={i} className="flex items-center space-x-2 text-xs">
+                            <span className="font-medium">{criterion}:</span>
+                            {mark ? (
                               <span>{renderMarkSymbol(mark)}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Sem detalhes específicos de avaliação disponíveis.</p>
-              )}
+                  </div>
+                ))}
+              </div>
             </div>
           
             {/* Kumite Evaluation Details - if applicable */}
             {student.targetBelt !== "Amarela" && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Avaliação de Kumitê</h3>
-                {Object.keys(kumiteMarks).length > 0 ? (
-                  <div className="border rounded-md p-3">
-                    <div className="grid grid-cols-3 gap-2">
-                      {kumiteCriteria.map((criterion, i) => {
-                        const mark = kumiteMarks[criterion];
-                        if (!mark) return null;
-                        
-                        return (
-                          <div key={i} className="flex items-center space-x-2 text-xs">
-                            <span className="font-medium">{criterion}:</span>
+                <div className="border rounded-md p-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {kumiteCriteria.map((criterion, i) => {
+                      const mark = kumiteMarks[criterion];
+                      
+                      return (
+                        <div key={i} className="flex items-center space-x-2 text-xs">
+                          <span className="font-medium">{criterion}:</span>
+                          {mark ? (
                             <span>{renderMarkSymbol(mark)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Sem detalhes específicos de avaliação disponíveis.</p>
-                )}
+                </div>
               </div>
             )}
           </div>
