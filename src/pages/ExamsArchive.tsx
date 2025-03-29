@@ -13,9 +13,23 @@ const ExamsArchivePage = () => {
   const printRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = useReactToPrint({
-    documentTitle: 'Exame de Faixa - Arquivo',
-    // The contentRef property is what we want to use, not 'content'
+    documentTitle: 'Exame de Faixa - Lista de Alunos',
     contentRef: printRef,
+    pageStyle: `
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+      @media print {
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    `,
+    onAfterPrint: () => {
+      console.log('Impressão concluída');
+    }
   });
 
   return (
@@ -26,7 +40,7 @@ const ExamsArchivePage = () => {
           <div className="mb-6 flex justify-between items-center">
             <h1 className="text-2xl font-bold">Arquivo de Exames</h1>
             <Button 
-              onClick={() => handlePrint()} 
+              onClick={handlePrint} 
               variant="outline" 
               className="flex items-center gap-2"
             >
@@ -44,15 +58,7 @@ const ExamsArchivePage = () => {
           {/* Hidden element for printing */}
           <div className="hidden">
             <div ref={printRef}>
-              <StudentListPrint 
-                students={[]} // This will be populated from ExamsArchiveComponent
-                examDate={new Date()}
-                examLocation="Local a ser definido"
-                kihonScores={{}}
-                kataScores={{}}
-                kumiteScores={{}}
-                knowledgeScores={{}}
-              />
+              <StudentListPrint />
             </div>
           </div>
         </div>

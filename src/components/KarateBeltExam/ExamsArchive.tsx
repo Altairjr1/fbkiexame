@@ -1,10 +1,9 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, XCircle, Printer, Download, FolderOpen, Calendar, MapPin, User, Trash2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Printer, Download, FolderOpen, Calendar, MapPin, User, Trash2, FileText } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -20,15 +19,13 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import BeltDisplay from './BeltDisplay';
+import { format } from 'date-fns';
+import { StudentResult } from './StudentResult';
+import { supabase } from '@/integrations/supabase/client';
+import { useReactToPrint } from 'react-to-print';
 
-interface ExamArchive {
-  date: string;
-  location: string;
-  students: Student[];
-}
-
-interface Student {
-  id: number;
+interface ExamStudent {
+  id: string;
   name: string;
   age: string;
   club: string;
@@ -45,40 +42,173 @@ interface Student {
   kataExaminer?: string;
   kumiteExaminer?: string;
   knowledgeExaminer?: string;
+  kihonMarks?: {[key: string]: string};
+  kumiteMarks?: {[key: string]: string};
+}
+
+interface ExamData {
+  id: string;
+  date: string;
+  location: string;
+  students: ExamStudent[];
 }
 
 export const ExamsArchive = () => {
-  const [exams, setExams] = useState<{[key: string]: ExamArchive}>({});
+  const [exams, setExams] = useState<{[key: string]: ExamData}>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExam, setSelectedExam] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirmExam, setDeleteConfirmExam] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<ExamStudent | null>(null);
   const { toast } = useToast();
+  const studentResultRef = useRef<HTMLDivElement>(null);
+  const examListRef = useRef<HTMLDivElement>(null);
 
-  // Load exams from localStorage
+  // Carregar exames do Supabase
   useEffect(() => {
-    const loadExams = () => {
-      const examKeys = Object.keys(localStorage).filter(key => key.startsWith('exam-'));
-      const loadedExams: {[key: string]: ExamArchive} = {};
-      
-      examKeys.forEach(key => {
-        try {
-          const examData = JSON.parse(localStorage.getItem(key) || '');
-          loadedExams[key] = examData;
-        } catch (e) {
-          console.error(`Error loading exam data for key ${key}:`, e);
-        }
-      });
-      
-      setExams(loadedExams);
-      setLoading(false);
+    const fetchExams = async () => {
+      try {
+        setLoading(true);
+        
+        // Buscar todos os exames
+        const { data: examsData, error: examsError } = await supabase
+          .from('exams')
+          .select('*');
+        
+        if (examsError) throw examsError;
+        
+        const loadedExams: {[key: string]: ExamData} = {};
+        
+        // Para cada exame, buscar os alunos associados
+        await Promise.all(examsData.map(async (exam) => {
+          const { data: studentsData, error: studentsError } = await supabase
+            .from('students')
+            .select('*')
+            .eq('exam_id', exam.id);
+          
+          if (studentsError) throw studentsError;
+          
+          // Para cada aluno, buscar suas pontuações
+          const studentsWithScores = await Promise.all(studentsData.map(async (student) => {
+            const { data: scoreData, error: scoreError } = await supabase
+              .from('scores')
+              .select('*')
+              .eq('student_id', student.id)
+              .single();
+            
+            if (scoreError && scoreError.code !== 'PGRST116') {
+              console.error('Erro ao buscar pontuação:', scoreError);
+            }
+            
+            // Converter para o formato esperado pelo componente
+            return {
+              id: student.id,
+              name: student.name,
+              age: student.age,
+              club: student.club,
+              specialCondition: student.special_condition,
+              belt: student.current_belt,
+              targetBelt: student.target_belt,
+              danStage: student.dan_stage,
+              kihon: scoreData?.kihon,
+              kata: scoreData?.kata,
+              kumite: scoreData?.kumite,
+              knowledge: scoreData?.knowledge,
+              notes: scoreData?.notes,
+              kihonExaminer: scoreData?.kihon_examiner,
+              kataExaminer: scoreData?.kata_examiner,
+              kumiteExaminer: scoreData?.kumite_examiner,
+              knowledgeExaminer: scoreData?.knowledge_examiner,
+              // Os marcadores serão armazenados como JSON no campo notes para simplicidade
+              kihonMarks: scoreData?.notes ? JSON.parse(scoreData.notes).kihonMarks || {} : {},
+              kumiteMarks: scoreData?.notes ? JSON.parse(scoreData.notes).kumiteMarks || {} : {}
+            };
+          }));
+          
+          // Adicionar o exame com seus alunos ao objeto de exames
+          loadedExams[exam.id] = {
+            id: exam.id,
+            date: exam.date,
+            location: exam.location,
+            students: studentsWithScores
+          };
+        }));
+        
+        setExams(loadedExams);
+      } catch (error) {
+        console.error('Erro ao carregar exames:', error);
+        toast({
+          title: "Erro ao carregar exames",
+          description: "Não foi possível carregar os dados dos exames.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
     };
     
-    loadExams();
-  }, []);
+    fetchExams();
+  }, [toast]);
+
+  // Handle deletar exame
+  const handleDeleteExam = async (examId: string) => {
+    try {
+      // Deletar o exame do Supabase
+      const { error } = await supabase
+        .from('exams')
+        .delete()
+        .eq('id', examId);
+      
+      if (error) throw error;
+      
+      // Atualizar o estado
+      setExams(prev => {
+        const updated = { ...prev };
+        delete updated[examId];
+        return updated;
+      });
+      
+      setDeleteConfirmExam(null);
+      toast({
+        title: "Exame excluído",
+        description: "O registro do exame foi removido com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao excluir exame:', error);
+      toast({
+        title: "Erro ao excluir exame",
+        description: "Não foi possível excluir o exame.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Imprimir lista de alunos
+  const handlePrintList = useReactToPrint({
+    content: () => examListRef.current,
+    documentTitle: 'Lista de Alunos - Exame de Faixa',
+    onAfterPrint: () => {
+      toast({
+        title: "Impressão concluída",
+        description: "A lista de alunos foi enviada para impressão."
+      });
+    }
+  });
+
+  // Imprimir ficha individual do aluno
+  const handlePrintStudentResult = useReactToPrint({
+    content: () => studentResultRef.current,
+    documentTitle: 'Resultado Individual - Exame de Faixa',
+    onAfterPrint: () => {
+      toast({
+        title: "Impressão concluída",
+        description: "A ficha do aluno foi enviada para impressão."
+      });
+    }
+  });
 
   // Group exams by location
-  const examsByLocation = Object.entries(exams).reduce((acc: {[key: string]: {[key: string]: ExamArchive}}, [key, exam]) => {
+  const examsByLocation = Object.entries(exams).reduce((acc: {[key: string]: {[key: string]: ExamData}}, [key, exam]) => {
     const location = exam.location || 'Sem local';
     if (!acc[location]) {
       acc[location] = {};
@@ -88,7 +218,7 @@ export const ExamsArchive = () => {
   }, {});
 
   // Calculate pass/fail count
-  const calculateResults = (student: Student) => {
+  const calculateResults = (student: ExamStudent) => {
     const scores = [];
     
     // Always include kihon and kata
@@ -117,63 +247,14 @@ export const ExamsArchive = () => {
     };
   };
 
-  const handleDeleteExam = (examKey: string) => {
-    localStorage.removeItem(examKey);
-    setExams(prev => {
-      const updated = { ...prev };
-      delete updated[examKey];
-      return updated;
-    });
-    
-    setDeleteConfirmExam(null);
-    toast({
-      title: "Exame excluído",
-      description: "O registro do exame foi removido com sucesso.",
-    });
-  };
-
-  const formatExamKey = (key: string) => {
-    if (!key.startsWith('exam-')) return key;
-    
-    // Remove 'exam-' prefix and split by location and date
-    const parts = key.replace('exam-', '').split('-');
-    
-    // Try to format the date
-    let dateStr = '';
-    if (parts.length >= 3) {
-      try {
-        // Assuming date format is DD-MM-YYYY
-        dateStr = `${parts[0]}/${parts[1]}/${parts[2]}`;
-      } catch (e) {
-        dateStr = parts.slice(0, 3).join('-');
-      }
-    }
-    
-    return dateStr;
-  };
-  
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "Sem data";
-    
-    try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[0]}/${parts[1]}/${parts[2]}`;
-      }
-      return dateStr;
-    } catch {
-      return dateStr;
-    }
-  };
-
   // Filter function for search
   const filterExams = () => {
     if (!searchQuery.trim()) return examsByLocation;
     
-    const filtered: {[key: string]: {[key: string]: ExamArchive}} = {};
+    const filtered: {[key: string]: {[key: string]: ExamData}} = {};
     
     Object.entries(examsByLocation).forEach(([location, locationExams]) => {
-      const filteredLocationExams: {[key: string]: ExamArchive} = {};
+      const filteredLocationExams: {[key: string]: ExamData} = {};
       
       Object.entries(locationExams).forEach(([key, exam]) => {
         // Check if exam date/location matches search
@@ -201,21 +282,16 @@ export const ExamsArchive = () => {
 
   const filteredExams = filterExams();
 
-  // Generate PDF for student record
-  const handleGeneratePDF = (exam: ExamArchive, student: Student) => {
-    toast({
-      title: "Gerando PDF",
-      description: "O PDF está sendo preparado para download."
-    });
+  // Formatar data
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "Sem data";
     
-    // In a real implementation, this would use a library like jsPDF to generate a PDF
-    // For now, we'll just show a toast message
-    setTimeout(() => {
-      toast({
-        title: "PDF pronto",
-        description: "O PDF do aluno foi gerado com sucesso. Iniciando download..."
-      });
-    }, 1500);
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('pt-BR');
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -297,8 +373,8 @@ export const ExamsArchive = () => {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="p-4 space-y-4">
-                  {Object.entries(locationExams).map(([examKey, exam]) => (
-                    <Card key={examKey} className="overflow-hidden">
+                  {Object.entries(locationExams).map(([examId, exam]) => (
+                    <Card key={examId} className="overflow-hidden">
                       <CardHeader className="p-4 bg-muted/20 flex flex-row justify-between items-center space-y-0">
                         <div className="flex items-center space-x-4">
                           <div className="flex-shrink-0 p-2 bg-primary/10 rounded-full">
@@ -312,7 +388,7 @@ export const ExamsArchive = () => {
                         <div className="flex space-x-2">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => setSelectedExam(examKey)}>
+                              <Button variant="outline" size="sm" onClick={() => setSelectedExam(examId)}>
                                 <User className="h-4 w-4 mr-2" />
                                 <span className="hidden sm:inline">Ver Alunos</span>
                               </Button>
@@ -337,7 +413,7 @@ export const ExamsArchive = () => {
                                 </TabsList>
 
                                 <TabsContent value="all">
-                                  <div className="overflow-x-auto">
+                                  <div className="overflow-x-auto" ref={examListRef}>
                                     <Table>
                                       <TableHeader>
                                         <TableRow>
@@ -382,15 +458,18 @@ export const ExamsArchive = () => {
                                               </TableCell>
                                               <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                  <Button size="icon" variant="outline" onClick={() => window.print()}>
-                                                    <Printer className="h-4 w-4" />
-                                                  </Button>
                                                   <Button 
                                                     size="icon" 
-                                                    variant="outline"
-                                                    onClick={() => handleGeneratePDF(exam, student)}
+                                                    variant="outline" 
+                                                    onClick={() => {
+                                                      setSelectedStudent(student);
+                                                      setTimeout(() => handlePrintStudentResult(), 100);
+                                                    }}
                                                   >
-                                                    <Download className="h-4 w-4" />
+                                                    <FileText className="h-4 w-4" />
+                                                  </Button>
+                                                  <Button size="icon" variant="outline" onClick={handlePrintList}>
+                                                    <Printer className="h-4 w-4" />
                                                   </Button>
                                                 </div>
                                               </TableCell>
@@ -436,15 +515,18 @@ export const ExamsArchive = () => {
                                                 <TableCell className="text-center font-semibold">{result.average}</TableCell>
                                                 <TableCell className="text-right">
                                                   <div className="flex justify-end gap-2">
-                                                    <Button size="icon" variant="outline" onClick={() => window.print()}>
-                                                      <Printer className="h-4 w-4" />
-                                                    </Button>
                                                     <Button 
                                                       size="icon" 
-                                                      variant="outline"
-                                                      onClick={() => handleGeneratePDF(exam, student)}
+                                                      variant="outline" 
+                                                      onClick={() => {
+                                                        setSelectedStudent(student);
+                                                        setTimeout(() => handlePrintStudentResult(), 100);
+                                                      }}
                                                     >
-                                                      <Download className="h-4 w-4" />
+                                                      <FileText className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button size="icon" variant="outline" onClick={handlePrintList}>
+                                                      <Printer className="h-4 w-4" />
                                                     </Button>
                                                   </div>
                                                 </TableCell>
@@ -490,15 +572,18 @@ export const ExamsArchive = () => {
                                                 <TableCell className="text-center font-semibold">{result.average}</TableCell>
                                                 <TableCell className="text-right">
                                                   <div className="flex justify-end gap-2">
-                                                    <Button size="icon" variant="outline" onClick={() => window.print()}>
-                                                      <Printer className="h-4 w-4" />
-                                                    </Button>
                                                     <Button 
                                                       size="icon" 
-                                                      variant="outline"
-                                                      onClick={() => handleGeneratePDF(exam, student)}
+                                                      variant="outline" 
+                                                      onClick={() => {
+                                                        setSelectedStudent(student);
+                                                        setTimeout(() => handlePrintStudentResult(), 100);
+                                                      }}
                                                     >
-                                                      <Download className="h-4 w-4" />
+                                                      <FileText className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button size="icon" variant="outline" onClick={handlePrintList}>
+                                                      <Printer className="h-4 w-4" />
                                                     </Button>
                                                   </div>
                                                 </TableCell>
@@ -512,7 +597,7 @@ export const ExamsArchive = () => {
                               </Tabs>
 
                               <DialogFooter>
-                                <Button onClick={() => window.print()}>
+                                <Button onClick={handlePrintList}>
                                   <Printer className="h-4 w-4 mr-2" />
                                   Imprimir Lista
                                 </Button>
@@ -535,7 +620,7 @@ export const ExamsArchive = () => {
                               </DialogHeader>
                               <DialogFooter>
                                 <Button variant="outline" onClick={() => setDeleteConfirmExam(null)}>Cancelar</Button>
-                                <Button variant="destructive" onClick={() => handleDeleteExam(examKey)}>
+                                <Button variant="destructive" onClick={() => handleDeleteExam(examId)}>
                                   Excluir Exame
                                 </Button>
                               </DialogFooter>
@@ -569,6 +654,39 @@ export const ExamsArchive = () => {
               </CollapsibleContent>
             </Collapsible>
           ))}
+        </div>
+      )}
+
+      {/* Área escondida para impressão da ficha individual */}
+      {selectedStudent && (
+        <div className="hidden">
+          <div ref={studentResultRef}>
+            <StudentResult
+              student={{
+                id: Number(selectedStudent.id),
+                name: selectedStudent.name,
+                age: selectedStudent.age,
+                club: selectedStudent.club,
+                specialCondition: selectedStudent.specialCondition,
+                belt: selectedStudent.belt,
+                targetBelt: selectedStudent.targetBelt,
+                danStage: selectedStudent.danStage
+              }}
+              examDate={selectedExam ? new Date(exams[selectedExam].date) : undefined}
+              examLocation={selectedExam ? exams[selectedExam].location : ''}
+              kihonScore={selectedStudent.kihon || 0}
+              kataScore={selectedStudent.kata || 0}
+              kumiteScore={selectedStudent.kumite || 0}
+              knowledgeScore={selectedStudent.knowledge || 0}
+              notes={selectedStudent.notes || ''}
+              kihonExaminer={selectedStudent.kihonExaminer || ''}
+              kataExaminer={selectedStudent.kataExaminer || ''}
+              kumiteExaminer={selectedStudent.kumiteExaminer || ''}
+              knowledgeExaminer={selectedStudent.knowledgeExaminer || ''}
+              kihonMarks={selectedStudent.kihonMarks}
+              kumiteMarks={selectedStudent.kumiteMarks}
+            />
+          </div>
         </div>
       )}
     </div>
