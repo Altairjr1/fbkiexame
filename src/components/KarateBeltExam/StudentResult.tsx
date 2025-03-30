@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, XCircle } from 'lucide-react';
 import BeltDisplay from './BeltDisplay';
 import { format } from 'date-fns';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface StudentResultProps {
   student: Student;

@@ -47,7 +47,6 @@ const ExamsArchivePage = () => {
   
   const handlePrint = useReactToPrint({
     documentTitle: 'Exame de Faixa - Lista de Alunos',
-    // Fix: Pass the ref object directly instead of a function
     contentRef: printRef,
     pageStyle: `
       @page {

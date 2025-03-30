@@ -111,6 +111,7 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         setExamDate(new Date(examToUse.date));
         setExamLocation(examToUse.location);
         
+        // Get all students from this exam
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('*')
@@ -124,29 +125,32 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           age: student.age,
           club: student.club,
           targetBelt: student.target_belt,
-          danStage: student.dan_stage
+          danStage: student.dan_stage,
+          belt: student.current_belt
         }));
         
         setStudents(formattedStudents);
         
         const studentsScores: {[key: string]: any} = {};
         
-        await Promise.all(studentsData.map(async (student) => {
-          const { data: scoreData, error: scoreError } = await supabase
-            .from('scores')
-            .select('*')
-            .eq('student_id', student.id)
-            .maybeSingle();
+        // Fetch all scores for all students in one go
+        const { data: scoresData, error: scoresError } = await supabase
+          .from('scores')
+          .select('*')
+          .in('student_id', studentsData.map(s => s.id));
           
-          if (!scoreError && scoreData) {
-            studentsScores[student.id] = {
-              kihon: scoreData.kihon,
-              kata: scoreData.kata,
-              kumite: scoreData.kumite,
-              knowledge: scoreData.knowledge
+        if (scoresError) throw scoresError;
+        
+        if (scoresData && scoresData.length > 0) {
+          scoresData.forEach(score => {
+            studentsScores[score.student_id] = {
+              kihon: score.kihon,
+              kata: score.kata,
+              kumite: score.kumite,
+              knowledge: score.knowledge
             };
-          }
-        }));
+          });
+        }
         
         setScores(studentsScores);
       } catch (error) {
