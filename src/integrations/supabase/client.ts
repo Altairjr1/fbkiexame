@@ -10,3 +10,19 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Helper function to handle common error cases
+export const handleSupabaseError = (error: any) => {
+  console.error('Supabase error:', error);
+  
+  // Return user-friendly error messages based on error type
+  if (error?.code === 'PGRST116') {
+    return 'Dados não encontrados.';
+  } else if (error?.code?.includes('23505')) {
+    return 'Este registro já existe.';
+  } else if (error?.message?.includes('timeout')) {
+    return 'Tempo de conexão esgotado. Verifique sua internet e tente novamente.';
+  }
+  
+  return 'Ocorreu um erro ao processar sua solicitação.';
+};

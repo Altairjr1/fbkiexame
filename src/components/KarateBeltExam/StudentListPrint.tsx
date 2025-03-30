@@ -2,8 +2,9 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
-import { CheckCircle, XCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { supabase, handleSupabaseError } from '@/integrations/supabase/client';
+import { motion } from 'framer-motion';
 
 interface Student {
   id: number | string;
@@ -45,6 +46,7 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
     knowledge?: number;
   }}>({});
   const [loading, setLoading] = useState(!propStudents);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (propStudents && propStudents.length > 0) {
@@ -79,6 +81,7 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
       
       try {
         setLoading(true);
+        setError(null);
         
         const { data: examsData, error: examsError } = await supabase
           .from('exams')
@@ -93,12 +96,14 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           return;
         }
         
-        const examToUse = examId 
-          ? await supabase.from('exams').select('*').eq('id', examId).single()
-              .then(res => res.data)
-          : examsData[0];
+        const { data: examToUse, error: examFetchError } = examId 
+          ? await supabase.from('exams').select('*').eq('id', examId).maybeSingle()
+          : { data: examsData[0], error: null };
+        
+        if (examFetchError) throw examFetchError;
         
         if (!examToUse) {
+          setError('Exame não encontrado.');
           setLoading(false);
           return;
         }
@@ -131,7 +136,7 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
             .from('scores')
             .select('*')
             .eq('student_id', student.id)
-            .single();
+            .maybeSingle();
           
           if (!scoreError && scoreData) {
             studentsScores[student.id] = {
@@ -146,6 +151,7 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         setScores(studentsScores);
       } catch (error) {
         console.error('Erro ao carregar dados do exame:', error);
+        setError(handleSupabaseError(error));
       } finally {
         setLoading(false);
       }
@@ -198,13 +204,40 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
 
   const summary = getResultsSummary();
 
+  // Sort students by pass status and then by name
+  const sortedStudents = [...students].sort((a, b) => {
+    const aResult = calculateResults(a);
+    const bResult = calculateResults(b);
+    
+    // First sort by pass status (passed students first)
+    if (aResult.passed && !bResult.passed) return -1;
+    if (!aResult.passed && bResult.passed) return 1;
+    
+    // Then sort by name
+    return a.name.localeCompare(b.name);
+  });
+
   if (loading) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="ml-3">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 border border-red-300 bg-red-50 rounded-md text-red-600 flex items-center">
+        <AlertCircle className="h-5 w-5 mr-2" />
+        <span>{error}</span>
+      </div>
+    );
   }
 
   return (
     <div ref={ref} className="p-4 max-w-4xl mx-auto print-container">
-      <div className="text-center mb-6">
+      <div className="print-header">
         <h1 className="text-2xl font-bold mb-1">Resultado do Exame de Faixa FBKI</h1>
         <p className="text-sm">
           Local: {examLocation} • 
@@ -212,7 +245,7 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         </p>
         
         {/* Added summary of results */}
-        <div className="flex justify-center items-center mt-3 gap-8">
+        <div className="summary mt-3 flex justify-center items-center gap-8">
           <div className="flex items-center text-green-600">
             <CheckCircle className="w-4 h-4 mr-1" />
             <span>Aprovados: {summary.approved}</span>
@@ -230,19 +263,19 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Idade</TableHead>
-            <TableHead>Clube</TableHead>
-            <TableHead>Faixa Pretendida</TableHead>
-            <TableHead className="text-right">Média</TableHead>
-            <TableHead className="text-center">Resultado</TableHead>
+            <TableHead className="w-[30%]">Nome</TableHead>
+            <TableHead className="w-[10%]">Idade</TableHead>
+            <TableHead className="w-[20%]">Clube</TableHead>
+            <TableHead className="w-[15%]">Faixa Pretendida</TableHead>
+            <TableHead className="w-[10%] text-right">Média</TableHead>
+            <TableHead className="w-[15%] text-center">Resultado</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {students.map((student) => {
+          {sortedStudents.map((student) => {
             const result = calculateResults(student);
             return (
-              <TableRow key={student.id}>
+              <TableRow key={student.id} className={result.passed ? "bg-green-50" : "bg-red-50"}>
                 <TableCell className="font-medium">{student.name}</TableCell>
                 <TableCell>{student.age}</TableCell>
                 <TableCell>{student.club}</TableCell>
@@ -267,8 +300,8 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         </TableBody>
       </Table>
 
-      <div className="text-center text-xs text-muted-foreground mt-6 pt-4 border-t">
-        Federação Baiana de Karatê Interestilo - Exame de Faixa
+      <div className="print-footer text-center text-xs text-muted-foreground mt-6 pt-4 border-t">
+        Federação Baiana de Karatê Interestilo - Exame de Faixa • Impresso em {format(new Date(), 'dd/MM/yyyy')}
       </div>
     </div>
   );
