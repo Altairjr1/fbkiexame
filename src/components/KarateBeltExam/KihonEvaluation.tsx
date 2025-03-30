@@ -19,7 +19,8 @@ import {
   Clock, 
   MapPin, 
   Trophy,
-  XCircle
+  XCircle,
+  UserCircle
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Badge } from '@/components/ui/badge';
@@ -215,16 +216,21 @@ export const KihonEvaluation: React.FC<KihonEvaluationProps> = ({
           </div>
         </div>
 
-        <div className="mb-3">
-          <Label htmlFor={`examiner-${student.id}`} className="text-sm">Nome do Examinador*</Label>
+        {/* Examiner name input - Added highlight styling */}
+        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md animate-pulse">
+          <div className="flex items-center gap-2 mb-1">
+            <UserCircle className="h-5 w-5 text-yellow-600" />
+            <Label htmlFor={`examiner-${student.id}`} className="text-sm font-medium text-yellow-800">Nome do Examinador de Kihon*</Label>
+          </div>
           <Input 
             id={`examiner-${student.id}`}
             value={examinerName}
             onChange={(e) => onExaminerNameChange(student.id, e.target.value)}
-            placeholder="Nome do examinador de Kihon"
-            className="mt-1 text-sm"
+            placeholder="Digite o nome do examinador de Kihon"
+            className="mt-1 text-sm border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500"
             required
           />
+          <p className="text-xs text-yellow-600 mt-1">Este campo é obrigatório para a avaliação</p>
         </div>
         
         <div className="mb-4 overflow-hidden rounded-md border shadow-sm">

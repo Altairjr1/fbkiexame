@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Student } from './StudentCard';
 import { Label } from "@/components/ui/label";
@@ -6,11 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import BeltDisplay from "./BeltDisplay";
-import { ArrowRight, CheckCircle2, XCircle, Maximize2, Minimize2, Slash } from 'lucide-react';
+import { ArrowRight, CheckCircle2, XCircle, Maximize2, Minimize2, Slash, UserCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 interface SynchronizedEvaluationProps {
   students: Student[];
@@ -21,6 +21,8 @@ interface SynchronizedEvaluationProps {
   onNotesChange: (studentId: number, notes: string) => void;
   title: string;
   description: string;
+  examinerNames?: {[key: number]: string};
+  onExaminerNameChange?: (studentId: number, name: string) => void;
 }
 
 export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
@@ -31,21 +33,21 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
   onScoreChange,
   onNotesChange,
   title,
-  description
+  description,
+  examinerNames = {},
+  onExaminerNameChange
 }) => {
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
   const [fullscreenStudent, setFullscreenStudent] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<string>("criterios");
   const [criteriaMarks, setCriteriaMarks] = useState<{[key: string]: {[key: string]: string}}>({});
 
-  // Initialize scores with 10 if not set yet
   useEffect(() => {
     students.forEach(student => {
       if (scores[student.id] === undefined) {
         onScoreChange(student.id, 10);
       }
       
-      // Initialize criteria marks for each student
       if (!criteriaMarks[student.id]) {
         setCriteriaMarks(prev => ({
           ...prev,
@@ -87,7 +89,6 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
     return { text: "Excelente", color: "text-green-600" };
   };
 
-  // Handle mark updates
   const handleMarkChange = (studentId: number, criteriaGroup: string, criterion: string, mark: string) => {
     const criteriaKey = `${criteriaGroup}-${criterion}`;
     const currentMarks = criteriaMarks[studentId] || {};
@@ -102,12 +103,10 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
       [studentId]: updatedMarks
     }));
     
-    // Calculate new score based on marks
     const newScore = calculateScore(updatedMarks);
     onScoreChange(studentId, newScore);
   };
-  
-  // Calculate score based on marks
+
   const calculateScore = (marks: {[key: string]: string}) => {
     let totalScore = 10;
     
@@ -117,11 +116,9 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
       else if (mark === '*') totalScore -= 0.5;
     });
     
-    // Ensure score is not negative and round to 1 decimal place
     return Math.max(0, Number(totalScore.toFixed(1)));
   };
 
-  // Criteria groups for evaluation
   const criteriaGroups = {
     bases: [
       "ZENKUTSO DACHI", "KOKUTSU DACHI", "KIBA DACHI", "HEIKO DACHI", 
@@ -151,6 +148,7 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
           const currentScore = scores[student.id] || 10;
           const scoreRating = renderScoreRating(currentScore);
           const studentMarks = criteriaMarks[student.id] || {};
+          const examinerName = examinerNames[student.id] || '';
           
           return (
             <Card 
@@ -213,12 +211,14 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
                     <TabsList className="w-full justify-start mb-3">
                       <TabsTrigger value="criterios">Critérios de Avaliação</TabsTrigger>
                       <TabsTrigger value="pontuacao">Pontuação</TabsTrigger>
+                      {evaluationType === 'kihon' && (
+                        <TabsTrigger value="examinador">Examinador</TabsTrigger>
+                      )}
                       <TabsTrigger value="observacoes">Observações</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="criterios" className="space-y-4 mt-0">
                       <div className="overflow-hidden rounded-md border shadow-sm">
-                        {/* Chrome-style browser window */}
                         <div className="flex items-center justify-between p-2 bg-[#f1f3f4] border-b">
                           <div className="flex space-x-1.5">
                             <div className="h-3 w-3 rounded-full bg-red-500"></div>
@@ -508,6 +508,30 @@ export const SynchronizedEvaluation: React.FC<SynchronizedEvaluationProps> = ({
                         </div>
                       </div>
                     </TabsContent>
+                    
+                    {evaluationType === 'kihon' && (
+                      <TabsContent value="examinador" className="mt-0">
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <div className="flex items-center gap-2 mb-2">
+                            <UserCircle className="h-5 w-5 text-yellow-600" />
+                            <Label htmlFor={`examiner-${student.id}`} className="text-sm font-medium text-yellow-800">
+                              Nome do Examinador de Kihon*
+                            </Label>
+                          </div>
+                          <Input 
+                            id={`examiner-${student.id}`}
+                            value={examinerName}
+                            onChange={(e) => onExaminerNameChange && onExaminerNameChange(student.id, e.target.value)}
+                            placeholder="Digite o nome do examinador de Kihon"
+                            className="mt-1 text-sm border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500"
+                            required
+                          />
+                          <p className="text-xs text-yellow-600 mt-1">
+                            Este campo é obrigatório para a avaliação de Kihon
+                          </p>
+                        </div>
+                      </TabsContent>
+                    )}
                     
                     <TabsContent value="observacoes" className="mt-0">
                       <div className="space-y-1">
