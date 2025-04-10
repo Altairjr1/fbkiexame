@@ -6,11 +6,13 @@ import KarateExam from './components/KarateBeltExam/KarateExam';
 import { Toaster } from "@/components/ui/toaster";
 import Dashboard from './pages/Dashboard';
 import ExamsArchivePage from './pages/ExamsArchive';
+import Header from './components/KarateBeltExam/Header';
 
 function App() {
   return (
     <>
-      <div className="flex flex-col min-h-screen">
+      <Header />
+      <div className="flex flex-col min-h-screen pt-16">
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Dashboard />} />

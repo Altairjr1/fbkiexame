@@ -1,8 +1,7 @@
-
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
-import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase, handleSupabaseError } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 
@@ -24,6 +23,7 @@ export interface StudentListPrintProps {
   kataScores?: {[key: number]: number};
   kumiteScores?: {[key: number]: number};
   knowledgeScores?: {[key: number]: number};
+  includeAllExamStudents?: boolean;
 }
 
 export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps>(({
@@ -34,7 +34,8 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
   kihonScores: propKihonScores,
   kataScores: propKataScores,
   kumiteScores: propKumiteScores,
-  knowledgeScores: propKnowledgeScores
+  knowledgeScores: propKnowledgeScores,
+  includeAllExamStudents = true
 }, ref) => {
   const [students, setStudents] = useState<Student[]>(propStudents || []);
   const [examDate, setExamDate] = useState<Date | undefined>(propExamDate);
@@ -49,61 +50,67 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (propStudents && propStudents.length > 0) {
-      setStudents(propStudents);
-      setExamDate(propExamDate);
-      setExamLocation(propExamLocation || '');
-      
-      if (propKihonScores || propKataScores || propKumiteScores || propKnowledgeScores) {
-        const newScores: {[key: string]: any} = {};
+    const loadData = async () => {
+      if (propStudents && propStudents.length > 0) {
+        setStudents(propStudents);
+        setExamDate(propExamDate);
+        setExamLocation(propExamLocation || '');
         
-        propStudents.forEach(student => {
-          const studentId = student.id.toString();
-          newScores[studentId] = {
-            kihon: propKihonScores?.[Number(student.id)],
-            kata: propKataScores?.[Number(student.id)],
-            kumite: propKumiteScores?.[Number(student.id)],
-            knowledge: propKnowledgeScores?.[Number(student.id)]
-          };
-        });
-        
-        setScores(newScores);
-        setLoading(false);
-        return;
+        if (propKihonScores || propKataScores || propKumiteScores || propKnowledgeScores) {
+          const newScores: {[key: string]: any} = {};
+          
+          propStudents.forEach(student => {
+            const studentId = student.id.toString();
+            newScores[studentId] = {
+              kihon: propKihonScores?.[Number(student.id)],
+              kata: propKataScores?.[Number(student.id)],
+              kumite: propKumiteScores?.[Number(student.id)],
+              knowledge: propKnowledgeScores?.[Number(student.id)]
+            };
+          });
+          
+          setScores(newScores);
+          setLoading(false);
+          
+          if (!includeAllExamStudents) {
+            return;
+          }
+        }
       }
-    }
 
-    const loadExamData = async () => {
-      if (!examId) {
-        setLoading(false);
-        return;
-      }
-      
       try {
         setLoading(true);
         setError(null);
         
-        const { data: examsData, error: examsError } = await supabase
-          .from('exams')
-          .select('*')
-          .order('date', { ascending: false })
-          .limit(1);
-        
-        if (examsError) throw examsError;
-        
-        if (!examsData || examsData.length === 0) {
-          setLoading(false);
-          return;
+        let examToUse;
+        if (examId) {
+          const { data, error } = await supabase
+            .from('exams')
+            .select('*')
+            .eq('id', examId)
+            .maybeSingle();
+            
+          if (error) throw error;
+          examToUse = data;
+        } else if (propExamDate && propExamLocation) {
+          examToUse = {
+            date: propExamDate,
+            location: propExamLocation
+          };
+        } else {
+          const { data, error } = await supabase
+            .from('exams')
+            .select('*')
+            .order('date', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          if (error) throw error;
+          examToUse = data;
         }
         
-        const { data: examToUse, error: examFetchError } = examId 
-          ? await supabase.from('exams').select('*').eq('id', examId).maybeSingle()
-          : { data: examsData[0], error: null };
-        
-        if (examFetchError) throw examFetchError;
-        
         if (!examToUse) {
-          setError('Exame não encontrado.');
+          setError('Nenhum exame encontrado.');
           setLoading(false);
           return;
         }
@@ -111,7 +118,11 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         setExamDate(new Date(examToUse.date));
         setExamLocation(examToUse.location);
         
-        // Get all students from this exam
+        if (propStudents && propStudents.length > 0 && !includeAllExamStudents) {
+          setLoading(false);
+          return;
+        }
+        
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('*')
@@ -129,30 +140,56 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           belt: student.current_belt
         }));
         
-        setStudents(formattedStudents);
-        
-        const studentsScores: {[key: string]: any} = {};
-        
-        // Fetch all scores for all students in one go
-        const { data: scoresData, error: scoresError } = await supabase
-          .from('scores')
-          .select('*')
-          .in('student_id', studentsData.map(s => s.id));
+        if (propStudents && propStudents.length > 0) {
+          const existingIds = new Set(formattedStudents.map(s => s.id.toString()));
           
-        if (scoresError) throw scoresError;
-        
-        if (scoresData && scoresData.length > 0) {
-          scoresData.forEach(score => {
-            studentsScores[score.student_id] = {
-              kihon: score.kihon,
-              kata: score.kata,
-              kumite: score.kumite,
-              knowledge: score.knowledge
-            };
+          propStudents.forEach(student => {
+            if (!existingIds.has(student.id.toString())) {
+              formattedStudents.push(student);
+            }
           });
         }
         
-        setScores(studentsScores);
+        setStudents(formattedStudents);
+        
+        if (formattedStudents.length > 0) {
+          const { data: scoresData, error: scoresError } = await supabase
+            .from('scores')
+            .select('*')
+            .in('student_id', formattedStudents.map(s => s.id));
+            
+          if (scoresError) throw scoresError;
+          
+          const newScores: {[key: string]: any} = {};
+          
+          if (scoresData && scoresData.length > 0) {
+            scoresData.forEach(score => {
+              newScores[score.student_id] = {
+                kihon: score.kihon,
+                kata: score.kata,
+                kumite: score.kumite,
+                knowledge: score.knowledge
+              };
+            });
+          }
+          
+          if (propStudents && (propKihonScores || propKataScores || propKumiteScores || propKnowledgeScores)) {
+            propStudents.forEach(student => {
+              const studentId = student.id.toString();
+              
+              if (!newScores[studentId]) {
+                newScores[studentId] = {
+                  kihon: propKihonScores?.[Number(student.id)],
+                  kata: propKataScores?.[Number(student.id)],
+                  kumite: propKumiteScores?.[Number(student.id)],
+                  knowledge: propKnowledgeScores?.[Number(student.id)]
+                };
+              }
+            });
+          }
+          
+          setScores(newScores);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados do exame:', error);
         setError(handleSupabaseError(error));
@@ -161,8 +198,18 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
       }
     };
     
-    loadExamData();
-  }, [examId, propStudents, propExamDate, propExamLocation, propKihonScores, propKataScores, propKumiteScores, propKnowledgeScores]);
+    loadData();
+  }, [
+    examId, 
+    propStudents, 
+    propExamDate, 
+    propExamLocation, 
+    propKihonScores, 
+    propKataScores, 
+    propKumiteScores, 
+    propKnowledgeScores,
+    includeAllExamStudents
+  ]);
 
   const calculateResults = (student: Student) => {
     const scoreData = scores[student.id.toString()] || {};
@@ -191,7 +238,6 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
     };
   };
 
-  // Get counts of approved and failed students
   const getResultsSummary = () => {
     if (!students.length) return { approved: 0, failed: 0 };
     
@@ -208,24 +254,21 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
 
   const summary = getResultsSummary();
 
-  // Sort students by pass status and then by name
   const sortedStudents = [...students].sort((a, b) => {
     const aResult = calculateResults(a);
     const bResult = calculateResults(b);
     
-    // First sort by pass status (passed students first)
     if (aResult.passed && !bResult.passed) return -1;
     if (!aResult.passed && bResult.passed) return 1;
     
-    // Then sort by name
     return a.name.localeCompare(b.name);
   });
 
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="ml-3">Carregando...</p>
+        <Loader2 className="h-8 w-8 animate-spin mr-2 text-primary" />
+        <p className="ml-3">Carregando resultados do exame...</p>
       </div>
     );
   }
@@ -248,7 +291,6 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           Data: {examDate ? format(examDate, 'dd/MM/yyyy') : 'Não definida'}
         </p>
         
-        {/* Added summary of results */}
         <div className="summary mt-3 flex justify-center items-center gap-8">
           <div className="flex items-center text-green-600">
             <CheckCircle className="w-4 h-4 mr-1" />

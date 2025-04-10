@@ -9,7 +9,127 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      exams: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          location: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          location: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          location?: string
+        }
+        Relationships: []
+      }
+      scores: {
+        Row: {
+          created_at: string
+          id: string
+          kata: number | null
+          kata_examiner: string | null
+          kihon: number | null
+          kihon_examiner: string | null
+          knowledge: number | null
+          knowledge_examiner: string | null
+          kumite: number | null
+          kumite_examiner: string | null
+          notes: string | null
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kata?: number | null
+          kata_examiner?: string | null
+          kihon?: number | null
+          kihon_examiner?: string | null
+          knowledge?: number | null
+          knowledge_examiner?: string | null
+          kumite?: number | null
+          kumite_examiner?: string | null
+          notes?: string | null
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kata?: number | null
+          kata_examiner?: string | null
+          kihon?: number | null
+          kihon_examiner?: string | null
+          knowledge?: number | null
+          knowledge_examiner?: string | null
+          kumite?: number | null
+          kumite_examiner?: string | null
+          notes?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          age: string
+          club: string
+          created_at: string
+          current_belt: string
+          dan_stage: string | null
+          exam_id: string
+          id: string
+          name: string
+          special_condition: string | null
+          target_belt: string
+        }
+        Insert: {
+          age: string
+          club: string
+          created_at?: string
+          current_belt: string
+          dan_stage?: string | null
+          exam_id: string
+          id?: string
+          name: string
+          special_condition?: string | null
+          target_belt: string
+        }
+        Update: {
+          age?: string
+          club?: string
+          created_at?: string
+          current_belt?: string
+          dan_stage?: string | null
+          exam_id?: string
+          id?: string
+          name?: string
+          special_condition?: string | null
+          target_belt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Student } from './StudentCard';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,20 +40,16 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
   kihonMarks = {},
   kumiteMarks = {}
 }, ref) => {
-  // Calculate average score and determine if passed
   const calculateResults = () => {
     const scores = [];
     
-    // Always include kihon and kata scores
     scores.push(kihonScore || 0);
     scores.push(kataScore || 0);
     
-    // Only include kumite score for non-yellow belt candidates
     if (student.targetBelt !== "Amarela") {
       scores.push(kumiteScore || 0);
     }
     
-    // Only include knowledge score for black belt or dan candidates
     if (student.targetBelt === "Preta" || student.targetBelt === "Dans") {
       scores.push(knowledgeScore || 0);
     }
@@ -86,7 +81,6 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
     }
   };
 
-  // Helper to render mark symbols with more emphasis
   const renderMarkSymbol = (mark: string) => {
     if (mark === '/') return <Slash className="h-4 w-4 text-amber-600" />;
     if (mark === 'X') return <XCircle className="h-4 w-4 text-orange-600" />;
@@ -94,24 +88,65 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
     return null;
   };
 
-  // Criteria groups for Kihon
-  const kihonCriteriaGroups = [
-    {
-      name: "Bases",
-      criteria: ["ZENKUTSO DACHI", "KOKUTSU DACHI", "KIBA DACHI", "HEIKO DACHI", "HEISOKU DACHI"]
-    },
-    {
-      name: "Movimentos",
-      criteria: ["OI ZUKI", "TETSUI", "AGE UKE", "GEDAN BARAI", "SOTO UKE", "UCHI UKE", "SHUTO UKE", "MAI GUERI KEAGUE", "YOKO GUERI KEAGUE"]
-    },
-    {
-      name: "Gerais",
-      criteria: ["CINTURA", "CONHECIMENTO", "COORDENAÇÃO", "EMBUZEN", "ESCUDO", "ESPIRITO", "FORMA", "KIAI", "KIMÊ", "POSTURA", "RIKIASHI", "RIKITE", "UNIFORME", "VISTA"]
+  const formatMarkKey = (key: string): string => {
+    const parts = key.split('-');
+    if (parts.length >= 2) {
+      return parts[1];
     }
-  ];
+    return key;
+  };
 
-  // Criteria for Kumite
-  const kumiteCriteria = ["ATAQUE", "DEFESA", "CONTRA ATAQUE", "DISTÂNCIA", "ZANCHI", "ESPIRITO", "TEMPO"];
+  const groupKihonMarks = () => {
+    const groups: {[key: string]: {criterion: string, mark: string}[]} = {};
+    
+    Object.entries(kihonMarks).forEach(([key, mark]) => {
+      const parts = key.split('-');
+      if (parts.length >= 2) {
+        const group = parts[0];
+        const criterion = parts[1];
+        
+        if (!groups[group]) {
+          groups[group] = [];
+        }
+        
+        groups[group].push({
+          criterion,
+          mark
+        });
+      } else {
+        if (!groups['Geral']) {
+          groups['Geral'] = [];
+        }
+        
+        groups['Geral'].push({
+          criterion: key,
+          mark
+        });
+      }
+    });
+    
+    return groups;
+  };
+
+  const kihonMarksByGroup = groupKihonMarks();
+
+  const getErrorLabel = (mark: string) => {
+    switch(mark) {
+      case '/': return 'Pequeno ajuste';
+      case 'X': return 'Ajuste necessário';
+      case '*': return 'Correção crítica';
+      default: return '';
+    }
+  };
+
+  const getMarkColorClasses = (mark: string) => {
+    switch(mark) {
+      case '/': return 'bg-amber-50 text-amber-700';
+      case 'X': return 'bg-orange-50 text-orange-700';
+      case '*': return 'bg-red-50 text-red-700';
+      default: return '';
+    }
+  };
 
   return (
     <div className="print-container w-full max-w-4xl mx-auto" ref={ref}>
@@ -199,97 +234,53 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
             )}
           </div>
           
-          {/* Evaluation Details Section - Now with more emphasis on errors */}
           <div className="mt-6 space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Avaliação de Kihon</h3>
               <div className="space-y-4">
-                {kihonCriteriaGroups.map((group, index) => (
+                {Object.entries(kihonMarksByGroup).map(([group, marks], index) => (
                   <div key={index} className="border rounded-md p-3">
-                    <h4 className="text-sm font-semibold mb-2">{group.name}</h4>
+                    <h4 className="text-sm font-semibold mb-2">{group}</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {group.criteria.map((criterion, i) => {
-                        const key = `${group.name}-${criterion}`;
-                        const mark = kihonMarks[key];
-                        
-                        // Return different styled items based on if they have marks
-                        return (
-                          <div 
-                            key={i} 
-                            className={`flex items-center gap-2 text-xs p-1 rounded-md ${
-                              mark ? (
-                                mark === '/' ? 'bg-amber-50' : 
-                                mark === 'X' ? 'bg-orange-50' : 
-                                mark === '*' ? 'bg-red-50' : ''
-                              ) : ''
-                            }`}
-                          >
-                            <span className="font-medium">{criterion}:</span>
-                            {mark ? (
-                              <span className="flex items-center">
-                                {renderMarkSymbol(mark)}
-                                <span className={`ml-1 text-xs ${
-                                  mark === '/' ? 'text-amber-700' : 
-                                  mark === 'X' ? 'text-orange-700' : 
-                                  mark === '*' ? 'text-red-700' : ''
-                                }`}>
-                                  {mark === '/' ? 'Pequeno ajuste' : 
-                                   mark === 'X' ? 'Ajuste necessário' : 
-                                   mark === '*' ? 'Correção crítica' : ''}
-                                </span>
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {marks.filter(item => item.mark).map((item, i) => (
+                        <div 
+                          key={i} 
+                          className={`flex items-center gap-2 text-xs p-1.5 rounded-md ${getMarkColorClasses(item.mark)}`}
+                        >
+                          <span className="font-medium">{item.criterion}:</span>
+                          <span className="flex items-center">
+                            {renderMarkSymbol(item.mark)}
+                            <span className="ml-1 text-xs">
+                              {getErrorLabel(item.mark)}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           
-            {/* Kumite Evaluation Details - if applicable - also with more emphasis */}
-            {student.targetBelt !== "Amarela" && (
+            {student.targetBelt !== "Amarela" && Object.keys(kumiteMarks).length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Avaliação de Kumitê</h3>
                 <div className="border rounded-md p-3">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {kumiteCriteria.map((criterion, i) => {
-                      const mark = kumiteMarks[criterion];
-                      
-                      return (
-                        <div 
-                          key={i} 
-                          className={`flex items-center gap-2 text-xs p-1 rounded-md ${
-                            mark ? (
-                              mark === '/' ? 'bg-amber-50' : 
-                              mark === 'X' ? 'bg-orange-50' : 
-                              mark === '*' ? 'bg-red-50' : ''
-                            ) : ''
-                          }`}
-                        >
-                          <span className="font-medium">{criterion}:</span>
-                          {mark ? (
-                            <span className="flex items-center">
-                              {renderMarkSymbol(mark)}
-                              <span className={`ml-1 text-xs ${
-                                mark === '/' ? 'text-amber-700' : 
-                                mark === 'X' ? 'text-orange-700' : 
-                                mark === '*' ? 'text-red-700' : ''
-                              }`}>
-                                {mark === '/' ? 'Pequeno ajuste' : 
-                                 mark === 'X' ? 'Ajuste necessário' : 
-                                 mark === '*' ? 'Correção crítica' : ''}
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {Object.entries(kumiteMarks).filter(([_, mark]) => mark).map(([criterion, mark], i) => (
+                      <div 
+                        key={i} 
+                        className={`flex items-center gap-2 text-xs p-1.5 rounded-md ${getMarkColorClasses(mark)}`}
+                      >
+                        <span className="font-medium">{criterion}:</span>
+                        <span className="flex items-center">
+                          {renderMarkSymbol(mark)}
+                          <span className="ml-1 text-xs">
+                            {getErrorLabel(mark)}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -314,7 +305,6 @@ export const StudentResult = React.forwardRef<HTMLDivElement, StudentResultProps
 
 StudentResult.displayName = "StudentResult";
 
-// Add this component to make it available in the imports
 export const Slash = (props: any) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
