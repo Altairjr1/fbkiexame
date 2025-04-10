@@ -18,7 +18,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 interface UserProfile {
   id: string;
   email: string;
-  full_name: string;
+  full_name: string | null;
   role: 'admin' | 'affiliate' | 'evaluator';
   dojo: string | null;
 }
@@ -73,7 +73,7 @@ const Dashboard = () => {
         return;
       }
       
-      // Get user profile
+      // Get user profile from the profiles table
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -89,7 +89,7 @@ const Dashboard = () => {
           const defaultProfile: UserProfile = {
             id: userData.id,
             email: userData.email || '',
-            full_name: userData.user_metadata?.full_name || '',
+            full_name: userData.user_metadata?.full_name || null,
             role: 'affiliate',
             dojo: userData.user_metadata?.dojo || null
           };
@@ -143,8 +143,6 @@ const Dashboard = () => {
   const fetchDashboardData = async (userProfile: UserProfile) => {
     try {
       setLoading(true);
-      
-      // ... keep existing code (dashboard data fetching)
       
       // Fetch total exam count with filter by dojo if affiliate
       let examQuery = supabase.from('exams').select('*', { count: 'exact' });

@@ -11,22 +11,55 @@ export type Database = {
     Tables: {
       exams: {
         Row: {
+          access_code: string | null
           created_at: string
           date: string
+          dojo: string | null
           id: string
           location: string
         }
         Insert: {
+          access_code?: string | null
           created_at?: string
           date: string
+          dojo?: string | null
           id?: string
           location: string
         }
         Update: {
+          access_code?: string | null
           created_at?: string
           date?: string
+          dojo?: string | null
           id?: string
           location?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          dojo: string | null
+          email: string
+          full_name: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          dojo?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          dojo?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string
         }
         Relationships: []
       }

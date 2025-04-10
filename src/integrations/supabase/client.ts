@@ -22,7 +22,13 @@ export const handleSupabaseError = (error: any) => {
     return 'Este registro já existe.';
   } else if (error?.message?.includes('timeout')) {
     return 'Tempo de conexão esgotado. Verifique sua internet e tente novamente.';
+  } else if (error?.message?.includes('JWT')) {
+    return 'Erro de autenticação. Por favor, faça login novamente.';
+  } else if (error?.message?.includes('password')) {
+    return 'Senha incorreta ou formato inválido.';
+  } else if (error?.message?.includes('email')) {
+    return 'E-mail inválido ou já registrado.';
   }
   
-  return 'Ocorreu um erro ao processar sua solicitação.';
+  return error?.message || 'Ocorreu um erro ao processar sua solicitação.';
 };

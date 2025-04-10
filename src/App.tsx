@@ -6,7 +6,6 @@ import KarateExam from './components/KarateBeltExam/KarateExam';
 import { Toaster } from "@/components/ui/toaster";
 import Dashboard from './pages/Dashboard';
 import ExamsArchivePage from './pages/ExamsArchive';
-import Header from './components/KarateBeltExam/Header';
 import Auth from './pages/Auth';
 import { supabase } from './integrations/supabase/client';
 import { Loading } from './components/ui/loading';

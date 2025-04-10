@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,8 +104,10 @@ const Auth = () => {
       
       if (error) throw error;
       
-      // Create the user profile entry
+      // Only proceed if the user was created successfully
       if (data.user) {
+        // Create the profile entry manually since the profiles table
+        // is now manually managed
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
@@ -114,7 +115,7 @@ const Auth = () => {
             email: email,
             full_name: fullName,
             role: 'affiliate', // Default role
-            dojo: dojo
+            dojo: dojo || null
           });
           
         if (profileError) {
@@ -124,16 +125,16 @@ const Auth = () => {
             description: handleSupabaseError(profileError),
             variant: "destructive"
           });
+        } else {
+          toast({
+            title: "Cadastro realizado com sucesso!",
+            description: "Verifique seu e-mail para confirmar sua conta."
+          });
+          
+          // Switch to login tab
+          setActiveTab('login');
         }
       }
-      
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Verifique seu e-mail para confirmar sua conta."
-      });
-      
-      // Switch to login tab
-      setActiveTab('login');
     } catch (error) {
       console.error('Error signing up:', error);
       toast({
