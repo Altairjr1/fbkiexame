@@ -98,21 +98,32 @@ const Auth = () => {
         options: {
           data: {
             full_name: fullName,
+            dojo: dojo
           }
         }
       });
       
       if (error) throw error;
       
-      // Update the profile with the dojo information
+      // Create the user profile entry
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ dojo })
-          .eq('id', data.user.id);
+          .insert({
+            id: data.user.id,
+            email: email,
+            full_name: fullName,
+            role: 'affiliate', // Default role
+            dojo: dojo
+          });
           
         if (profileError) {
-          console.error('Error updating profile:', profileError);
+          console.error('Error creating profile:', profileError);
+          toast({
+            title: "Erro ao criar perfil",
+            description: handleSupabaseError(profileError),
+            variant: "destructive"
+          });
         }
       }
       

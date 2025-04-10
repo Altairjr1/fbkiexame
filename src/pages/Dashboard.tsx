@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/KarateBeltExam/Header';
 import Footer from '@/components/KarateBeltExam/Footer';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Users, Award, Calendar, BarChart, ArrowRight, Plus, Clock, Search, Filter } from 'lucide-react';
+import { FileText, Users, Award, Calendar, BarChart, ArrowRight, Plus, Clock, Search } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { motion } from 'framer-motion';
 import { supabase, handleSupabaseError } from '@/integrations/supabase/client';
@@ -24,21 +23,33 @@ interface UserProfile {
   dojo: string | null;
 }
 
+// Define stat types to avoid deep instantiation issues
+interface DashboardStats {
+  totalExams: number;
+  totalStudents: number;
+  lastExamDate: string;
+  examsThisYear: number;
+  passRate: number;
+  recentExams: any[];
+  examsPerMonth: {name: string, exams: number}[];
+  beltDistribution: {name: string, value: number, color: string}[];
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalExams: 0,
     totalStudents: 0,
     lastExamDate: '',
     examsThisYear: 0,
     passRate: 0,
-    recentExams: [] as any[],
-    examsPerMonth: [] as any[],
-    beltDistribution: [] as any[]
+    recentExams: [],
+    examsPerMonth: [],
+    beltDistribution: []
   });
 
   // Check for authenticated user
@@ -71,6 +82,38 @@ const Dashboard = () => {
       
       if (profileError) {
         console.error('Error getting profile:', profileError);
+        
+        // If profile doesn't exist, create one with defaults
+        if (profileError.code === 'PGRST116') {
+          const userData = session.user;
+          const defaultProfile: UserProfile = {
+            id: userData.id,
+            email: userData.email || '',
+            full_name: userData.user_metadata?.full_name || '',
+            role: 'affiliate',
+            dojo: userData.user_metadata?.dojo || null
+          };
+          
+          // Create the profile
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert(defaultProfile);
+            
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+            toast({
+              title: "Erro ao criar perfil",
+              description: handleSupabaseError(insertError),
+              variant: "destructive"
+            });
+            return;
+          }
+          
+          setProfile(defaultProfile);
+          fetchDashboardData(defaultProfile);
+          return;
+        }
+        
         toast({
           title: "Erro ao carregar perfil",
           description: handleSupabaseError(profileError),
@@ -79,8 +122,8 @@ const Dashboard = () => {
         return;
       }
       
-      setProfile(profileData);
-      fetchDashboardData(profileData);
+      setProfile(profileData as UserProfile);
+      fetchDashboardData(profileData as UserProfile);
     };
     
     getSession();
@@ -101,6 +144,9 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
+      // ... keep existing code (dashboard data fetching)
+      
+      // Fetch total exam count with filter by dojo if affiliate
       let examQuery = supabase.from('exams').select('*', { count: 'exact' });
       let studentsQuery = supabase.from('students').select('*', { count: 'exact' });
       let recentExamsQuery = supabase.from('exams').select('*').order('date', { ascending: false }).limit(5);
