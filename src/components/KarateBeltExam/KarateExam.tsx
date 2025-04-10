@@ -898,12 +898,75 @@ export default function KarateExam() {
         <TabsContent value="results">
           <ExamResults
             students={students}
+            examDate={examDate}
+            examLocation={examLocation}
             kihonScores={kihonScores}
             kataScores={kataScores}
             kumiteScores={kumiteScores}
             knowledgeScores={knowledgeScores}
             examinerNotes={examinerNotes}
+            onPrint={handlePrintStudent}
+            onShare={handleShare}
+            onDownload={handleDownload}
+            onPrintList={handlePrintList}
           />
+          
+          {selectedStudentIndex !== null && (
+            <div className="hidden">
+              <div ref={studentResultRef}>
+                <StudentResult 
+                  student={students[selectedStudentIndex]}
+                  examDate={examDate}
+                  examLocation={examLocation}
+                  kihonScore={kihonScores[students[selectedStudentIndex].id]}
+                  kataScore={kataScores[students[selectedStudentIndex].id]}
+                  kumiteScore={kumiteScores[students[selectedStudentIndex].id]}
+                  knowledgeScore={knowledgeScores[students[selectedStudentIndex].id]}
+                  notes={examinerNotes[students[selectedStudentIndex].id]}
+                />
+              </div>
+            </div>
+          )}
+          
+          <div className="hidden">
+            <div ref={studentListRef}>
+              <StudentListPrint 
+                students={students}
+                examDate={examDate}
+                examLocation={examLocation}
+                kihonScores={kihonScores}
+                kataScores={kataScores}
+                kumiteScores={kumiteScores}
+                knowledgeScores={knowledgeScores}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-center gap-3 mt-12">
+            <Button onClick={handleReset} variant="outline" className="gap-2">
+              <ArrowRight className="w-4 h-4 rotate-180" />
+              Novo Exame
+            </Button>
+            
+            <Button onClick={addNewStudentsFromResults} variant="outline" className="gap-2">
+              <PlusCircle className="w-4 h-4" />
+              Adicionar Alunos
+            </Button>
+            
+            <Button onClick={handleSave} className="gap-2" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Salvar Exame
+                </>
+              )}
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

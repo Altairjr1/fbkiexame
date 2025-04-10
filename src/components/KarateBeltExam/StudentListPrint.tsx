@@ -4,14 +4,16 @@ import { format } from 'date-fns';
 import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase, handleSupabaseError } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
+import { Student } from './StudentCard';
 
-interface Student {
-  id: number | string;
+interface DbStudent {
+  id: string;
   name: string;
   age: string;
   club: string;
   targetBelt: string;
-  danStage?: string;
+  danStage: string;
+  belt: string;
 }
 
 export interface StudentListPrintProps {
@@ -137,7 +139,8 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           club: student.club,
           targetBelt: student.target_belt,
           danStage: student.dan_stage,
-          belt: student.current_belt
+          belt: student.current_belt,
+          specialCondition: student.special_condition || ""
         }));
         
         if (propStudents && propStudents.length > 0) {
@@ -150,7 +153,7 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           });
         }
         
-        setStudents(formattedStudents);
+        setStudents(formattedStudents as Student[]);
         
         if (formattedStudents.length > 0) {
           const { data: scoresData, error: scoresError } = await supabase
