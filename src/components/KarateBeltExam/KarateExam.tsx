@@ -41,19 +41,16 @@ export default function KarateExam() {
   const [kihonMarks, setKihonMarks] = useState<{[key: number]: {[key: string]: string}}>({});
   const [kumiteMarks, setKumiteMarks] = useState<{[key: number]: {[key: string]: string}}>({});
 
-  // Evaluation states
   const [kihonScores, setKihonScores] = useState<{[key: number]: number}>({});
   const [kataScores, setKataScores] = useState<{[key: number]: number}>({});
   const [kumiteScores, setKumiteScores] = useState<{[key: number]: number}>({});
   const [knowledgeScores, setKnowledgeScores] = useState<{[key: number]: number}>({});
   
-  // Examiner names
   const [kihonExaminers, setKihonExaminers] = useState<{[key: number]: string}>({});
   const [kataExaminers, setKataExaminers] = useState<{[key: number]: string}>({});
   const [kumiteExaminers, setKumiteExaminers] = useState<{[key: number]: string}>({});
   const [knowledgeExaminers, setKnowledgeExaminers] = useState<{[key: number]: string}>({});
   
-  // Notes
   const [examinerNotes, setExaminerNotes] = useState<{[key: number]: string}>({});
 
   const [students, setStudents] = useState<Student[]>([
@@ -73,7 +70,6 @@ export default function KarateExam() {
       )
     );
     
-    // If changing from green belt, update target belt options
     if (field === 'belt' && value === 'Verde') {
       const student = students.find(s => s.id === id);
       if (student && !['Estágio 1', 'Estágio 2', 'Roxa'].includes(student.targetBelt)) {
@@ -188,7 +184,6 @@ export default function KarateExam() {
   };
 
   const handleNextStep = () => {
-    // Validate required fields
     const incompleteStudents = students.filter(
       student => !student.name || !student.age || !student.club || !student.belt || !student.targetBelt
     );
@@ -234,17 +229,14 @@ export default function KarateExam() {
     
     const tabOrder = ["students", "kihon", "kata", "kumite", "knowledge", "results"];
     
-    // Find next tab based on student requirements
     const currentIndex = tabOrder.indexOf(currentTab);
     if (currentIndex >= 0 && currentIndex < tabOrder.length - 1) {
       let nextTab = tabOrder[currentIndex + 1];
       
-      // Skip kumite for yellow belt examinations
       if (nextTab === "kumite" && students.every(s => s.targetBelt === "Amarela")) {
         nextTab = "knowledge";
       }
       
-      // Skip knowledge if no black belt candidates
       if (nextTab === "knowledge" && !students.some(requiresKnowledgeTest)) {
         nextTab = "results";
       }
@@ -254,12 +246,10 @@ export default function KarateExam() {
   };
 
   const handleSubmit = () => {
-    // Check if examiners are entered
     if (!validateExaminers('kumite') || (students.some(requiresKnowledgeTest) && !validateExaminers('knowledge'))) {
       return;
     }
     
-    // Check if all evaluations are complete
     const incompleteEvaluations = students.some(student => {
       return (
         kihonScores[student.id] === undefined ||
@@ -280,7 +270,6 @@ export default function KarateExam() {
     
     setIsSubmitting(true);
     
-    // Simulate submission time
     setTimeout(() => {
       setIsSubmitting(false);
       toast({
@@ -288,7 +277,6 @@ export default function KarateExam() {
         description: "O exame de faixa foi finalizado com sucesso!",
       });
       
-      // Here you would typically send data to a server
       console.log("Submitted exam data:", {
         students,
         examDate,
@@ -300,7 +288,6 @@ export default function KarateExam() {
         examinerNotes
       });
       
-      // Move to results tab
       setActiveTab("results");
     }, 1000);
   };
@@ -352,7 +339,6 @@ export default function KarateExam() {
         const printContent = studentResultRef.current.innerHTML;
         const originalContent = document.body.innerHTML;
         
-        // Create a new window for printing
         const printWindow = window.open('', '_blank');
         if (printWindow) {
           printWindow.document.write(`
@@ -387,7 +373,6 @@ export default function KarateExam() {
       if (studentListRef.current) {
         const printContent = studentListRef.current.innerHTML;
         
-        // Create a new window for printing
         const printWindow = window.open('', '_blank');
         if (printWindow) {
           printWindow.document.write(`
@@ -425,7 +410,6 @@ export default function KarateExam() {
       title: "Compartilhamento",
       description: "Função de compartilhamento em desenvolvimento."
     });
-    // In a real implementation, this would generate a shareable PDF or link
   };
 
   const handleDownload = (studentId: number) => {
@@ -433,20 +417,17 @@ export default function KarateExam() {
       title: "Download iniciado",
       description: "O documento do aluno está sendo preparado para download."
     });
-    // In a real implementation, this would generate and download a PDF
   };
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
       
-      // Format data for saving
       const examData = {
         date: examDate ? format(examDate, 'yyyy-MM-dd') : null,
         location: examLocation
       };
       
-      // Insert exam record and get the id
       const { data: examResult, error: examError } = await supabase
         .from('exams')
         .insert(examData)
@@ -458,11 +439,9 @@ export default function KarateExam() {
       
       const examId = examResult.id;
       
-      // Save all students
       for (const student of students) {
-        if (!student.name) continue; // Skip empty students
+        if (!student.name) continue;
         
-        // Insert student record
         const studentData = {
           name: student.name,
           age: student.age,
@@ -487,7 +466,6 @@ export default function KarateExam() {
         
         const studentId = studentResult.id;
         
-        // Insert scores record for this student
         const scoreData = {
           student_id: studentId,
           kihon: kihonScores[student.id] || null,
@@ -501,7 +479,6 @@ export default function KarateExam() {
           notes: examinerNotes[student.id] || null
         };
         
-        // Add kihonMarks and kumiteMarks to notes as JSON
         const notesData = {
           kihonMarks: kihonMarks[student.id] || {},
           kumiteMarks: kumiteMarks[student.id] || {}
@@ -523,7 +500,6 @@ export default function KarateExam() {
         description: "O registro do exame foi salvo com sucesso!"
       });
       
-      // Navigate to archive page
       navigate("/archive");
     } catch (error) {
       console.error('Error saving exam:', error);
@@ -564,7 +540,6 @@ export default function KarateExam() {
   };
 
   const addNewStudentsFromResults = () => {
-    // Save current results
     const examInfo = {
       date: examDate ? format(examDate, 'dd-MM-yyyy') : 'sem-data',
       location: examLocation,
@@ -582,11 +557,9 @@ export default function KarateExam() {
       }))
     };
     
-    // Generate a temp key to store current results
     const tempKey = `exam-temp-${Date.now()}`;
     localStorage.setItem(tempKey, JSON.stringify(examInfo));
     
-    // Keep exam location and date, but reset students to a new one
     const newId = Math.max(0, ...students.map(s => s.id)) + 1;
     setStudents([{ 
       id: newId, 
@@ -599,7 +572,6 @@ export default function KarateExam() {
       danStage: "" 
     }]);
     
-    // Reset evaluation data
     setKihonScores({});
     setKataScores({});
     setKumiteScores({});
@@ -610,7 +582,6 @@ export default function KarateExam() {
     setKumiteExaminers({});
     setKnowledgeExaminers({});
     
-    // Go back to students tab
     setActiveTab("students");
     
     toast({
@@ -634,7 +605,6 @@ export default function KarateExam() {
     show: { opacity: 1, y: 0 }
   };
 
-  // Determine whether to show kumite for a specific tab
   const shouldShowKumite = !students.every(s => s.targetBelt === "Amarela");
 
   return (
@@ -697,7 +667,6 @@ export default function KarateExam() {
         </TabsList>
 
         <TabsContent value="students" className="space-y-6">
-          {/* Exam Information Section */}
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -852,4 +821,91 @@ export default function KarateExam() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
-        </TabsContent
+        </TabsContent>
+
+        <TabsContent value="kumite">
+          <div className="space-y-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Avaliação de Kumitê</h2>
+              <p className="text-muted-foreground">
+                Avalie a execução do kumitê, incluindo ritmo, força, equilíbrio e precisão técnica.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {students.map(student => (
+                <KumiteEvaluation
+                  key={student.id}
+                  student={student}
+                  score={kumiteScores[student.id] || 10}
+                  notes={examinerNotes[student.id] || ""}
+                  onScoreChange={handleKumiteScoreChange}
+                  onNotesChange={handleNotesChange}
+                  examinerName={kumiteExaminers[student.id] || ""}
+                  onExaminerNameChange={handleKumiteExaminerChange}
+                />
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex justify-between mt-8">
+            <Button variant="outline" onClick={() => setActiveTab("kihon")}>
+              Voltar
+            </Button>
+            <Button onClick={() => navigateToNextTab("kumite")}>
+              Próxima Etapa
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="knowledge">
+          <div className="space-y-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Avaliação de Conhecimento</h2>
+              <p className="text-muted-foreground">
+                Avalie o conhecimento dos alunos em diferentes temas.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {students.map(student => (
+                <KnowledgeEvaluation
+                  key={student.id}
+                  student={student}
+                  score={knowledgeScores[student.id] || 10}
+                  notes={examinerNotes[student.id] || ""}
+                  onScoreChange={handleKnowledgeScoreChange}
+                  onNotesChange={handleNotesChange}
+                  examinerName={knowledgeExaminers[student.id] || ""}
+                  onExaminerNameChange={handleKnowledgeExaminerChange}
+                />
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex justify-between mt-8">
+            <Button variant="outline" onClick={() => setActiveTab("kihon")}>
+              Voltar
+            </Button>
+            <Button onClick={() => navigateToNextTab("knowledge")}>
+              Próxima Etapa
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="results">
+          <ExamResults
+            students={students}
+            kihonScores={kihonScores}
+            kataScores={kataScores}
+            kumiteScores={kumiteScores}
+            knowledgeScores={knowledgeScores}
+            examinerNotes={examinerNotes}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
