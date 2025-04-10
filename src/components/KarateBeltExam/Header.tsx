@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   NavigationMenu, 
   NavigationMenuContent, 
@@ -9,10 +9,12 @@ import {
   NavigationMenuTrigger,
   NavigationMenuLink
 } from '@/components/ui/navigation-menu';
-import { BarChart3, FileText, Home } from 'lucide-react';
+import { BarChart3, FileText, Home, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Header = () => {
+  const location = useLocation();
+  
   return (
     <header className="fixed w-full top-0 bg-background border-b z-10">
       <div className="container flex h-16 items-center">
@@ -34,12 +36,13 @@ const Header = () => {
               <NavigationMenuLink
                 asChild
                 className={cn(
-                  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
+                  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                  location.pathname === '/' && "bg-accent/50"
                 )}
               >
                 <Link to="/">
                   <Home className="mr-2 h-4 w-4" />
-                  <span>Início</span>
+                  <span>Dashboard</span>
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
@@ -48,12 +51,28 @@ const Header = () => {
               <NavigationMenuLink
                 asChild
                 className={cn(
-                  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
+                  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                  location.pathname === '/exame' && "bg-accent/50"
+                )}
+              >
+                <Link to="/exame">
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Novo Exame</span>
+                </Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            
+            <NavigationMenuItem>
+              <NavigationMenuLink
+                asChild
+                className={cn(
+                  "group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                  location.pathname === '/archive' && "bg-accent/50"
                 )}
               >
                 <Link to="/archive">
                   <FileText className="mr-2 h-4 w-4" />
-                  <span>Exames</span>
+                  <span>Arquivo</span>
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
