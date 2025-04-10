@@ -1,3 +1,4 @@
+
 import React, { forwardRef, useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from 'date-fns';
@@ -11,9 +12,10 @@ interface DbStudent {
   name: string;
   age: string;
   club: string;
-  targetBelt: string;
-  danStage: string;
-  belt: string;
+  target_belt: string;
+  dan_stage: string | null;
+  current_belt: string;
+  special_condition?: string;
 }
 
 export interface StudentListPrintProps {
@@ -132,13 +134,14 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
         
         if (studentsError) throw studentsError;
         
-        const formattedStudents = studentsData.map(student => ({
-          id: student.id,
+        // Convert DB students to app Student type
+        const formattedStudents: Student[] = studentsData.map((student: DbStudent) => ({
+          id: parseInt(student.id, 10) || Math.floor(Math.random() * 10000), // Convert string ID to number
           name: student.name,
           age: student.age,
           club: student.club,
           targetBelt: student.target_belt,
-          danStage: student.dan_stage,
+          danStage: student.dan_stage || "",
           belt: student.current_belt,
           specialCondition: student.special_condition || ""
         }));
@@ -153,13 +156,13 @@ export const StudentListPrint = forwardRef<HTMLDivElement, StudentListPrintProps
           });
         }
         
-        setStudents(formattedStudents as Student[]);
+        setStudents(formattedStudents);
         
         if (formattedStudents.length > 0) {
           const { data: scoresData, error: scoresError } = await supabase
             .from('scores')
             .select('*')
-            .in('student_id', formattedStudents.map(s => s.id));
+            .in('student_id', studentsData.map(s => s.id));
             
           if (scoresError) throw scoresError;
           

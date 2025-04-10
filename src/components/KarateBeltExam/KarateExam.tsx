@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -923,6 +924,12 @@ export default function KarateExam() {
                   kumiteScore={kumiteScores[students[selectedStudentIndex].id]}
                   knowledgeScore={knowledgeScores[students[selectedStudentIndex].id]}
                   notes={examinerNotes[students[selectedStudentIndex].id]}
+                  kihonExaminer={kihonExaminers[students[selectedStudentIndex].id] || ""}
+                  kataExaminer={kataExaminers[students[selectedStudentIndex].id] || ""}
+                  kumiteExaminer={kumiteExaminers[students[selectedStudentIndex].id] || ""}
+                  knowledgeExaminer={knowledgeExaminers[students[selectedStudentIndex].id] || ""}
+                  kihonMarks={kihonMarks[students[selectedStudentIndex].id] || {}}
+                  kumiteMarks={kumiteMarks[students[selectedStudentIndex].id] || {}}
                 />
               </div>
             </div>
